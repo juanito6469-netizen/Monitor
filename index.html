@@ -58,6 +58,13 @@
 
   .count-badge{font-size:11px;color:var(--text-dim);margin-bottom:10px;}
 
+  .chart-box{
+    background:var(--panel);border:1px solid var(--panel-line);border-radius:6px;
+    padding:16px 18px 12px;margin-bottom:18px;
+  }
+  .chart-title{font-family:'Space Grotesk',sans-serif;font-weight:600;font-size:13.5px;color:var(--text);display:block;margin-bottom:10px;}
+  #chart-rociadores{width:100%;display:block;}
+
   section.routine{margin-bottom:36px;}
   .routine-head{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:12px;flex-wrap:wrap;gap:8px;}
   .routine-name{font-family:'Space Grotesk',sans-serif;font-weight:600;font-size:16px;display:flex;align-items:center;gap:9px;}
@@ -152,6 +159,25 @@
     <div class="grid">
       <div class="stat"><div class="num" id="r-total">—</div><div class="lbl">Registros filtrados</div></div>
       <div class="stat"><div class="num" id="r-ultimo">—</div><div class="lbl">Último registro</div></div>
+    </div>
+
+    <div class="chart-box">
+      <span class="chart-title">Comportamiento por variable</span>
+      <div class="filters">
+        <div class="filter-group"><label>Desde</label><input type="date" id="rg-desde"></div>
+        <div class="filter-group"><label>Hasta</label><input type="date" id="rg-hasta"></div>
+        <div class="filter-group"><label>Rociador</label><select id="rg-rociador"><option value="">Todos</option></select></div>
+        <div class="filter-group"><label>Variable</label>
+          <select id="r-variable">
+            <option value="Galonaje">Galonaje</option>
+            <option value="Temp">Temperatura</option>
+            <option value="Frecuencia">Frecuencia</option>
+          </select>
+        </div>
+        <button onclick="aplicarFiltrosGraficaRociadores()">Graficar</button>
+        <button class="secondary" onclick="limpiarFiltrosGraficaRociadores()">Limpiar</button>
+      </div>
+      <canvas id="chart-rociadores"></canvas>
     </div>
 
     <p class="count-badge" id="r-count"></p>
@@ -295,6 +321,109 @@ function renderTablaRociadores(rows){
     tbody.innerHTML += `<tr><td>${fmtFecha(r.__fecha)}</td><td>${r.Rociador||"—"}</td><td>${r.Galonaje||"—"}</td><td>${r.Tratamiento||"—"}</td><td>${r.Temp||"—"}</td><td>${r.Alineacion||"—"}</td><td>${r.Frecuencia||"—"}</td><td>${r.Esprea||"—"}</td><td>${r.Espreas||"—"}</td><td>${r.Envase||"—"}</td><td>${r.Carta||"—"}</td><td>${r.Fugas||"—"}</td><td>${r.Modo||"—"}</td><td>${r.Charolas||"—"}</td><td>${r.Personal||"—"}</td><td>${r.Comentarios||"—"}</td></tr>`;
   });
 }
+function dibujarBarras(canvasId, labels, valores){
+  const canvas = document.getElementById(canvasId);
+  const dpr = window.devicePixelRatio || 1;
+  const cssWidth = canvas.parentElement.clientWidth - 36;
+  const cssHeight = 240;
+  canvas.style.width = cssWidth + "px";
+  canvas.style.height = cssHeight + "px";
+  canvas.width = cssWidth * dpr;
+  canvas.height = cssHeight * dpr;
+  const ctx = canvas.getContext("2d");
+  ctx.setTransform(dpr,0,0,dpr,0,0);
+  ctx.clearRect(0,0,cssWidth,cssHeight);
+
+  const padding = {top:14, right:10, bottom:52, left:42};
+  const chartW = Math.max(cssWidth - padding.left - padding.right, 10);
+  const chartH = cssHeight - padding.top - padding.bottom;
+
+  const numeros = valores.map(v=>isNaN(v)?0:v);
+  const maxVal = Math.max(...numeros, 0) * 1.15 || 1;
+
+  ctx.strokeStyle = "#2A3238";
+  ctx.fillStyle = "#8A969C";
+  ctx.font = "10px IBM Plex Mono, monospace";
+  ctx.textAlign = "left";
+  const pasos = 4;
+  for(let i=0;i<=pasos;i++){
+    const y = padding.top + chartH - (chartH*i/pasos);
+    ctx.beginPath(); ctx.moveTo(padding.left,y); ctx.lineTo(padding.left+chartW,y); ctx.stroke();
+    ctx.fillText((maxVal*i/pasos).toFixed(1), 2, y+3);
+  }
+
+  if(labels.length===0){
+    ctx.fillStyle="#8A969C"; ctx.font="12px IBM Plex Mono, monospace"; ctx.textAlign="center";
+    ctx.fillText("Sin datos para este filtro", padding.left+chartW/2, padding.top+chartH/2);
+    return;
+  }
+
+  const n = labels.length;
+  const slot = chartW/n;
+  const barW = Math.max(4, Math.min(30, slot*0.6));
+
+  labels.forEach((lab,i)=>{
+    const v = numeros[i];
+    const barH = maxVal>0 ? (v/maxVal)*chartH : 0;
+    const x = padding.left + slot*i + (slot-barW)/2;
+    const y = padding.top + chartH - barH;
+    ctx.fillStyle = "#F2A93B";
+    ctx.fillRect(x,y,barW,barH);
+
+    ctx.save();
+    ctx.translate(x+barW/2, padding.top+chartH+8);
+    ctx.rotate(-Math.PI/3);
+    ctx.textAlign = "right";
+    ctx.fillStyle = "#8A969C";
+    ctx.font = "9px IBM Plex Mono, monospace";
+    const corto = lab.length>14 ? lab.slice(0,14)+"…" : lab;
+    ctx.fillText(corto, 0, 0);
+    ctx.restore();
+  });
+}
+
+function actualizarGraficaRociadores(rows){
+  try{
+    const variable = document.getElementById("r-variable").value;
+    const ordenadas = rows.slice().sort((a,b)=> (a.__fecha||0) - (b.__fecha||0));
+    let labels, valores;
+
+    if(variable === "Frecuencia"){
+      const conteo = {};
+      ordenadas.forEach(r=>{ const v = r.Frecuencia || "Sin dato"; conteo[v] = (conteo[v]||0)+1; });
+      labels = Object.keys(conteo);
+      valores = Object.values(conteo);
+    }else{
+      labels = ordenadas.map(r => fmtFecha(r.__fecha));
+      valores = ordenadas.map(r => parseFloat(r[variable]));
+    }
+
+    dibujarBarras("chart-rociadores", labels, valores);
+  }catch(err){
+    console.warn("No se pudo dibujar la gráfica de Rociadores:", err);
+  }
+}
+
+function aplicarFiltrosGraficaRociadores(){
+  const desde = document.getElementById("rg-desde").value ? new Date(document.getElementById("rg-desde").value+"T00:00:00") : null;
+  const hasta = document.getElementById("rg-hasta").value ? new Date(document.getElementById("rg-hasta").value+"T23:59:59") : null;
+  const rociador = document.getElementById("rg-rociador").value;
+
+  let filtradas = dataRociadores.filter(r=>{
+    if(desde && (!r.__fecha || r.__fecha < desde)) return false;
+    if(hasta && (!r.__fecha || r.__fecha > hasta)) return false;
+    if(rociador && r.Rociador !== rociador) return false;
+    return true;
+  });
+
+  actualizarGraficaRociadores(filtradas);
+}
+function limpiarFiltrosGraficaRociadores(){
+  ["rg-desde","rg-hasta"].forEach(id=>document.getElementById(id).value="");
+  document.getElementById("rg-rociador").value="";
+  aplicarFiltrosGraficaRociadores();
+}
+
 function aplicarFiltrosRociadores(){
   const desde = document.getElementById("r-desde").value ? new Date(document.getElementById("r-desde").value+"T00:00:00") : null;
   const hasta = document.getElementById("r-hasta").value ? new Date(document.getElementById("r-hasta").value+"T23:59:59") : null;
@@ -403,6 +532,12 @@ async function cargarTodo(){
   }catch(err){
     document.getElementById("dot-rociadores").className = "dot err";
     document.getElementById("status-rociadores").textContent = "Error de lectura";
+  }
+  try{
+    llenarSelect(document.getElementById("rg-rociador"), dataRociadores.map(r=>r.Rociador));
+    aplicarFiltrosGraficaRociadores();
+  }catch(err){
+    console.warn("No se pudo actualizar la gráfica de Rociadores:", err);
   }
 
   try{
