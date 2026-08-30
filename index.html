@@ -311,11 +311,11 @@ function limpiarFiltrosRociadores(){
 function renderTablaEstearato(rows){
   const thead = document.querySelector("#tabla-estearato thead");
   const tbody = document.querySelector("#tabla-estearato tbody");
-  thead.innerHTML = "<tr><th>Fecha</th><th>Mecánico</th><th>Lote</th><th>Nivel Estearato</th><th>Sensores</th><th>Observaciones</th></tr>";
+  thead.innerHTML = "<tr><th>Fecha</th><th>Mecánico</th><th>Nivel Estearato</th><th>Nivel Hipoclorito</th><th>Consumo Hipoclorito</th><th>Consumo Agua</th><th>Cambio Filtros</th><th>Limpieza Tanque</th><th>Fugas Prep</th><th>Presión Salida</th><th>Limpieza Cuarto</th><th>Bomba Inyección</th><th>Estearato Preparado</th><th>Lote</th><th>Sensores</th><th>Observaciones</th></tr>";
   tbody.innerHTML = "";
-  if(rows.length===0){ tbody.innerHTML = '<tr><td colspan="6" class="empty">Sin registros para este filtro</td></tr>'; return; }
+  if(rows.length===0){ tbody.innerHTML = '<tr><td colspan="16" class="empty">Sin registros para este filtro</td></tr>'; return; }
   rows.slice().reverse().forEach(r=>{
-    tbody.innerHTML += `<tr><td>${fmtFecha(r.__fecha)}</td><td>${r.Mecanico||"—"}</td><td>${r.Numero_Lote||"—"}</td><td>${r.Nivel_Estearato||"—"}</td><td>${r.Sensores||"—"}</td><td>${r.Observaciones||"—"}</td></tr>`;
+    tbody.innerHTML += `<tr><td>${fmtFecha(r.__fecha)}</td><td>${r.Mecanico||"—"}</td><td>${r.Nivel_Estearato||"—"}</td><td>${r.Nivel_Hipoclorito||"—"}</td><td>${r.Consumo_Hipoclorito||"—"}</td><td>${r.Consumo_Agua||"—"}</td><td>${r.Cambio_Filtros||"—"}</td><td>${r.Limpieza_Tanque||"—"}</td><td>${r.Fugas_Prep||"—"}</td><td>${r.Presion_Salida||"—"}</td><td>${r.Limpieza_Cuarto||"—"}</td><td>${r.Bomba_Inyeccion||"—"}</td><td>${r.Estearato_Preparado||"—"}</td><td>${r.Numero_Lote||"—"}</td><td>${r.Sensores||"—"}</td><td>${r.Observaciones||"—"}</td></tr>`;
   });
 }
 function aplicarFiltrosEstearato(){
@@ -350,11 +350,11 @@ function limpiarFiltrosEstearato(){
 function renderTablaDuracote(rows){
   const thead = document.querySelector("#tabla-duracote thead");
   const tbody = document.querySelector("#tabla-duracote tbody");
-  thead.innerHTML = "<tr><th>Fecha</th><th>Mecánico</th><th>Lote</th><th>Presión Hidro</th><th>Lámpara UV</th><th>Observaciones</th></tr>";
+  thead.innerHTML = "<tr><th>Fecha</th><th>Mecánico</th><th>Presión Hidro</th><th>Presión Entrada</th><th>Presión Salida</th><th>Nivel Desmin</th><th>Cambio Filtros</th><th>Limpieza Tanques</th><th>Fugas Prep</th><th>Nivel Duracote</th><th>Limpieza Cuarto</th><th>Func Hidro</th><th>Lámpara UV</th><th>Lote</th><th>Desmineralizador</th><th>Observaciones</th></tr>";
   tbody.innerHTML = "";
-  if(rows.length===0){ tbody.innerHTML = '<tr><td colspan="6" class="empty">Sin registros para este filtro</td></tr>'; return; }
+  if(rows.length===0){ tbody.innerHTML = '<tr><td colspan="16" class="empty">Sin registros para este filtro</td></tr>'; return; }
   rows.slice().reverse().forEach(r=>{
-    tbody.innerHTML += `<tr><td>${fmtFecha(r.__fecha)}</td><td>${r.Mecanico||"—"}</td><td>${r.Numero_Lote||"—"}</td><td>${r.Presion_Hidro||"—"}</td><td>${r.Lampara_UV||"—"}</td><td>${r.Observaciones||"—"}</td></tr>`;
+    tbody.innerHTML += `<tr><td>${fmtFecha(r.__fecha)}</td><td>${r.Mecanico||"—"}</td><td>${r.Presion_Hidro||"—"}</td><td>${r.Presion_Entrada||"—"}</td><td>${r.Presion_Salida||"—"}</td><td>${r.Nivel_Desmin||"—"}</td><td>${r.Cambio_Filtros||"—"}</td><td>${r.Limpieza_Tanques||"—"}</td><td>${r.Fugas_Prep||"—"}</td><td>${r.Nivel_Duracote||"—"}</td><td>${r.Limpieza_Cuarto||"—"}</td><td>${r.Func_Hidro||"—"}</td><td>${r.Lampara_UV||"—"}</td><td>${r.Numero_Lote||"—"}</td><td>${r.Desmineralizador||"—"}</td><td>${r.Observaciones||"—"}</td></tr>`;
   });
 }
 function aplicarFiltrosDuracote(){
