@@ -115,7 +115,7 @@
       <div class="hero-logo"><img src="O-I_BW.png" alt="O-I"></div>
       <div class="hero-content">
         <p class="eyebrow">Nueva Fanal · Zona Fría</p>
-        <h1>Panel de Cumplimiento de Rutinas</h1>
+        <h1>Panel de Gestión de Mantenimiento</h1>
         <p class="sub">Lectura en vivo desde Google Sheets · se actualiza automáticamente cada 45 s</p>
       </div>
     </div>
@@ -269,11 +269,11 @@ async function cargarCSV(url){
 function renderTablaRociadores(rows){
   const thead = document.querySelector("#tabla-rociadores thead");
   const tbody = document.querySelector("#tabla-rociadores tbody");
-  thead.innerHTML = "<tr><th>Fecha</th><th>Rociador</th><th>Temp</th><th>Frecuencia</th><th>Fugas</th><th>Personal</th></tr>";
+  thead.innerHTML = "<tr><th>Fecha</th><th>Rociador</th><th>Galonaje</th><th>Tratamiento</th><th>Temp</th><th>Alineación</th><th>Frecuencia</th><th>Esprea</th><th>Espreas</th><th>Envase</th><th>Carta</th><th>Fugas</th><th>Modo</th><th>Charolas</th><th>Personal</th><th>Comentarios</th></tr>";
   tbody.innerHTML = "";
-  if(rows.length===0){ tbody.innerHTML = '<tr><td colspan="6" class="empty">Sin registros para este filtro</td></tr>'; return; }
+  if(rows.length===0){ tbody.innerHTML = '<tr><td colspan="16" class="empty">Sin registros para este filtro</td></tr>'; return; }
   rows.slice().reverse().forEach(r=>{
-    tbody.innerHTML += `<tr><td>${fmtFecha(r.__fecha)}</td><td>${r.Rociador||"—"}</td><td>${r.Temp||"—"}</td><td>${r.Frecuencia||"—"}</td><td>${r.Fugas||"—"}</td><td>${r.Personal||"—"}</td></tr>`;
+    tbody.innerHTML += `<tr><td>${fmtFecha(r.__fecha)}</td><td>${r.Rociador||"—"}</td><td>${r.Galonaje||"—"}</td><td>${r.Tratamiento||"—"}</td><td>${r.Temp||"—"}</td><td>${r.Alineacion||"—"}</td><td>${r.Frecuencia||"—"}</td><td>${r.Esprea||"—"}</td><td>${r.Espreas||"—"}</td><td>${r.Envase||"—"}</td><td>${r.Carta||"—"}</td><td>${r.Fugas||"—"}</td><td>${r.Modo||"—"}</td><td>${r.Charolas||"—"}</td><td>${r.Personal||"—"}</td><td>${r.Comentarios||"—"}</td></tr>`;
   });
 }
 function aplicarFiltrosRociadores(){
