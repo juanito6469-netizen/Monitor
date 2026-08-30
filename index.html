@@ -145,16 +145,13 @@
     <div class="filters">
       <div class="filter-group"><label>Desde</label><input type="date" id="r-desde"></div>
       <div class="filter-group"><label>Hasta</label><input type="date" id="r-hasta"></div>
-      <div class="filter-group"><label>Temp mín</label><input type="number" id="r-temp-min" placeholder="°"></div>
-      <div class="filter-group"><label>Temp máx</label><input type="number" id="r-temp-max" placeholder="°"></div>
-      <div class="filter-group"><label>Frecuencia</label><select id="r-frecuencia"><option value="">Todas</option></select></div>
+      <div class="filter-group"><label>Rociador</label><select id="r-rociador"><option value="">Todos</option></select></div>
       <button onclick="aplicarFiltrosRociadores()">Filtrar</button>
       <button class="secondary" onclick="limpiarFiltrosRociadores()">Limpiar</button>
     </div>
     <div class="grid">
       <div class="stat"><div class="num" id="r-total">—</div><div class="lbl">Registros filtrados</div></div>
       <div class="stat"><div class="num" id="r-ultimo">—</div><div class="lbl">Último registro</div></div>
-      <div class="stat"><div class="num" id="r-temp-prom">—</div><div class="lbl">Temp. promedio (rango)</div></div>
     </div>
     <p class="count-badge" id="r-count"></p>
     <div class="table-scroll"><table id="tabla-rociadores"><thead></thead><tbody></tbody></table></div>
@@ -171,7 +168,6 @@
     <div class="filters">
       <div class="filter-group"><label>Desde</label><input type="date" id="e-desde"></div>
       <div class="filter-group"><label>Hasta</label><input type="date" id="e-hasta"></div>
-      <div class="filter-group"><label>Mecánico</label><select id="e-mecanico"><option value="">Todos</option></select></div>
       <div class="filter-group"><label>Lote</label><input type="text" id="e-lote" placeholder="Buscar lote…"></div>
       <button onclick="aplicarFiltrosEstearato()">Filtrar</button>
       <button class="secondary" onclick="limpiarFiltrosEstearato()">Limpiar</button>
@@ -196,7 +192,6 @@
     <div class="filters">
       <div class="filter-group"><label>Desde</label><input type="date" id="d-desde"></div>
       <div class="filter-group"><label>Hasta</label><input type="date" id="d-hasta"></div>
-      <div class="filter-group"><label>Mecánico</label><select id="d-mecanico"><option value="">Todos</option></select></div>
       <div class="filter-group"><label>Lote</label><input type="text" id="d-lote" placeholder="Buscar lote…"></div>
       <button onclick="aplicarFiltrosDuracote()">Filtrar</button>
       <button class="secondary" onclick="limpiarFiltrosDuracote()">Limpiar</button>
@@ -279,16 +274,12 @@ function renderTablaRociadores(rows){
 function aplicarFiltrosRociadores(){
   const desde = document.getElementById("r-desde").value ? new Date(document.getElementById("r-desde").value) : null;
   const hasta = document.getElementById("r-hasta").value ? new Date(document.getElementById("r-hasta").value+"T23:59:59") : null;
-  const tMin = parseFloat(document.getElementById("r-temp-min").value);
-  const tMax = parseFloat(document.getElementById("r-temp-max").value);
-  const frec = document.getElementById("r-frecuencia").value;
+  const rociador = document.getElementById("r-rociador").value;
 
   let filtradas = dataRociadores.filter(r=>{
     if(desde && (!r.__fecha || r.__fecha < desde)) return false;
     if(hasta && (!r.__fecha || r.__fecha > hasta)) return false;
-    if(!isNaN(tMin) && parseFloat(r.Temp) < tMin) return false;
-    if(!isNaN(tMax) && parseFloat(r.Temp) > tMax) return false;
-    if(frec && r.Frecuencia !== frec) return false;
+    if(rociador && r.Rociador !== rociador) return false;
     return true;
   });
 
@@ -296,14 +287,12 @@ function aplicarFiltrosRociadores(){
   document.getElementById("r-count").textContent = `Mostrando ${filtradas.length} de ${dataRociadores.length} registros totales`;
   const ultima = filtradas.reduce((a,b)=> (!a || (b.__fecha && b.__fecha>a.__fecha)) ? b : a, null);
   document.getElementById("r-ultimo").textContent = ultima ? fmtFecha(ultima.__fecha) : "—";
-  const temps = filtradas.map(r=>parseFloat(r.Temp)).filter(n=>!isNaN(n));
-  document.getElementById("r-temp-prom").textContent = temps.length ? (temps.reduce((a,b)=>a+b,0)/temps.length).toFixed(1)+"°" : "—";
 
   renderTablaRociadores(filtradas);
 }
 function limpiarFiltrosRociadores(){
-  ["r-desde","r-hasta","r-temp-min","r-temp-max"].forEach(id=>document.getElementById(id).value="");
-  document.getElementById("r-frecuencia").value="";
+  ["r-desde","r-hasta"].forEach(id=>document.getElementById(id).value="");
+  document.getElementById("r-rociador").value="";
   aplicarFiltrosRociadores();
 }
 
@@ -321,13 +310,11 @@ function renderTablaEstearato(rows){
 function aplicarFiltrosEstearato(){
   const desde = document.getElementById("e-desde").value ? new Date(document.getElementById("e-desde").value) : null;
   const hasta = document.getElementById("e-hasta").value ? new Date(document.getElementById("e-hasta").value+"T23:59:59") : null;
-  const mec = document.getElementById("e-mecanico").value;
   const lote = document.getElementById("e-lote").value.trim().toLowerCase();
 
   let filtradas = dataEstearato.filter(r=>{
     if(desde && (!r.__fecha || r.__fecha < desde)) return false;
     if(hasta && (!r.__fecha || r.__fecha > hasta)) return false;
-    if(mec && r.Mecanico !== mec) return false;
     if(lote && !(r.Numero_Lote||"").toLowerCase().includes(lote)) return false;
     return true;
   });
@@ -342,7 +329,6 @@ function aplicarFiltrosEstearato(){
 }
 function limpiarFiltrosEstearato(){
   ["e-desde","e-hasta","e-lote"].forEach(id=>document.getElementById(id).value="");
-  document.getElementById("e-mecanico").value="";
   aplicarFiltrosEstearato();
 }
 
@@ -360,13 +346,11 @@ function renderTablaDuracote(rows){
 function aplicarFiltrosDuracote(){
   const desde = document.getElementById("d-desde").value ? new Date(document.getElementById("d-desde").value) : null;
   const hasta = document.getElementById("d-hasta").value ? new Date(document.getElementById("d-hasta").value+"T23:59:59") : null;
-  const mec = document.getElementById("d-mecanico").value;
   const lote = document.getElementById("d-lote").value.trim().toLowerCase();
 
   let filtradas = dataDuracote.filter(r=>{
     if(desde && (!r.__fecha || r.__fecha < desde)) return false;
     if(hasta && (!r.__fecha || r.__fecha > hasta)) return false;
-    if(mec && r.Mecanico !== mec) return false;
     if(lote && !(r.Numero_Lote||"").toLowerCase().includes(lote)) return false;
     return true;
   });
@@ -381,7 +365,6 @@ function aplicarFiltrosDuracote(){
 }
 function limpiarFiltrosDuracote(){
   ["d-desde","d-hasta","d-lote"].forEach(id=>document.getElementById(id).value="");
-  document.getElementById("d-mecanico").value="";
   aplicarFiltrosDuracote();
 }
 
@@ -391,7 +374,7 @@ async function cargarTodo(){
     dataRociadores = await cargarCSV(URL_ROCIADORES);
     document.getElementById("dot-rociadores").className = "dot ok";
     document.getElementById("status-rociadores").textContent = "Conectado";
-    llenarSelect(document.getElementById("r-frecuencia"), dataRociadores.map(r=>r.Frecuencia));
+    llenarSelect(document.getElementById("r-rociador"), dataRociadores.map(r=>r.Rociador));
     aplicarFiltrosRociadores();
   }catch(err){
     document.getElementById("dot-rociadores").className = "dot err";
@@ -402,7 +385,6 @@ async function cargarTodo(){
     dataEstearato = await cargarCSV(URL_ESTEARATO);
     document.getElementById("dot-estearato").className = "dot ok";
     document.getElementById("status-estearato").textContent = "Conectado";
-    llenarSelect(document.getElementById("e-mecanico"), dataEstearato.map(r=>r.Mecanico));
     aplicarFiltrosEstearato();
   }catch(err){
     document.getElementById("dot-estearato").className = "dot err";
@@ -413,7 +395,6 @@ async function cargarTodo(){
     dataDuracote = await cargarCSV(URL_DURACOTE);
     document.getElementById("dot-duracote").className = "dot ok";
     document.getElementById("status-duracote").textContent = "Conectado";
-    llenarSelect(document.getElementById("d-mecanico"), dataDuracote.map(r=>r.Mecanico));
     aplicarFiltrosDuracote();
   }catch(err){
     document.getElementById("dot-duracote").className = "dot err";
