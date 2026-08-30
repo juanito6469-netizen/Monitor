@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Panel de Cumplimiento — Zona Fría</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.4/chart.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap');
 
@@ -465,13 +465,17 @@ async function cargarTodo(){
     dataRociadores = await cargarCSV(URL_ROCIADORES);
     document.getElementById("dot-rociadores").className = "dot ok";
     document.getElementById("status-rociadores").textContent = "Conectado";
+  }catch(err){
+    document.getElementById("dot-rociadores").className = "dot err";
+    document.getElementById("status-rociadores").textContent = "Error de lectura";
+  }
+  try{
     llenarSelect(document.getElementById("r-rociador"), dataRociadores.map(r=>r.Rociador));
     llenarSelect(document.getElementById("rg-rociador"), dataRociadores.map(r=>r.Rociador));
     aplicarFiltrosRociadores();
     aplicarFiltrosGraficaRociadores();
   }catch(err){
-    document.getElementById("dot-rociadores").className = "dot err";
-    document.getElementById("status-rociadores").textContent = "Error de lectura";
+    console.warn("No se pudo actualizar filtros/gráfica de Rociadores:", err);
   }
 
   try{
