@@ -307,17 +307,16 @@ function parseFechaMX(str){
   if(!str) return null;
   str = str.trim();
 
-  // Formato real exportado por Google Sheets: "M/D/AAAA H:MM:SS" (mes/día, 24h, sin ceros a la izquierda)
-  let m = str.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})\s+(\d{1,2}):(\d{2})(?::(\d{2}))?$/);
+  // Formato N1/N2/AAAA HH:MM(:SS) con o sin coma/a.m.-p.m. — el orden día/mes varía según
+  // la configuración regional de cada hoja de Google, así que se detecta automáticamente:
+  // si un número no puede ser mes (>12), ese es el día.
+  let m = str.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})[ ,]?\s*(\d{1,2}):(\d{2})(?::(\d{2}))?\s*([ap])?[\.\s]*m?\.?$/i);
   if(m){
-    const mm=+m[1], dd=+m[2], yyyy=+m[3], hh=+m[4], min=+m[5];
-    return new Date(yyyy, mm-1, dd, hh, min);
-  }
-
-  // Formato "DD/MM/AAAA, HH:MM" con posible a. m./p. m. (por si Sheets no reformatea)
-  m = str.match(/(\d{1,2})\/(\d{1,2})\/(\d{4}),\s*(\d{1,2}):(\d{2})(?:\s*([ap])[\.\s]*m\.?)?/i);
-  if(m){
-    let dd=+m[1], mm=+m[2], yyyy=+m[3], hh=+m[4], min=+m[5], ampm=m[6];
+    let n1=+m[1], n2=+m[2], yyyy=+m[3], hh=+m[4], min=+m[5], ampm=m[7];
+    let dd, mm;
+    if(n1>12){ dd=n1; mm=n2; }
+    else if(n2>12){ mm=n1; dd=n2; }
+    else { dd=n1; mm=n2; } // ambiguo -> asumimos día/mes (formato es-MX)
     if(ampm){
       const esPM = ampm.toLowerCase()==="p";
       if(esPM && hh<12) hh+=12;
@@ -337,6 +336,10 @@ function fmtFecha(d){
   if(!d) return "—";
   return d.toLocaleDateString("es-MX",{day:"2-digit",month:"2-digit"}) + " · " +
          d.toLocaleTimeString("es-MX",{hour:"2-digit",minute:"2-digit"});
+}
+function fmtSoloDia(d){
+  if(!d) return "—";
+  return d.toLocaleDateString("es-MX",{day:"2-digit",month:"2-digit",year:"2-digit"});
 }
 function llenarSelect(sel, valores){
   const actual = sel.value;
@@ -370,7 +373,7 @@ function renderTablaRociadores(rows){
     tbody.innerHTML += `<tr><td>${fmtFecha(r.__fecha)}</td><td>${r.Rociador||"—"}</td><td>${r.Galonaje||"—"}</td><td>${r.Tratamiento||"—"}</td><td>${r.Temp||"—"}</td><td>${r.Alineacion||"—"}</td><td>${r.Frecuencia||"—"}</td><td>${r.Esprea||"—"}</td><td>${r.Espreas||"—"}</td><td>${r.Envase||"—"}</td><td>${r.Carta||"—"}</td><td>${r.Fugas||"—"}</td><td>${r.Modo||"—"}</td><td>${r.Charolas||"—"}</td><td>${r.Personal||"—"}</td><td>${r.Comentarios||"—"}</td></tr>`;
   });
 }
-function dibujarBarras(canvasId, labels, valores, mensajeVacio){
+function dibujarBarras(canvasId, labels, valores, mensajeVacio, etiquetasTop){
   const canvas = document.getElementById(canvasId);
   const dpr = window.devicePixelRatio || 1;
   const cssWidth = canvas.parentElement.clientWidth - 36;
@@ -419,22 +422,21 @@ function dibujarBarras(canvasId, labels, valores, mensajeVacio){
     ctx.fillStyle = "#F2A93B";
     ctx.fillRect(x,y,barW,barH);
 
-    // Valor exacto encima de la barra
+    // Etiqueta encima de la barra: texto personalizado (ej. Frecuencia) o el valor numérico
     ctx.fillStyle = "#E7ECEE";
     ctx.font = "10.5px IBM Plex Mono, monospace";
     ctx.textAlign = "center";
-    const etiquetaVal = Number.isInteger(v) ? String(v) : v.toFixed(1);
+    const etiquetaVal = etiquetasTop ? etiquetasTop[i] : (Number.isInteger(v) ? String(v) : v.toFixed(1));
     ctx.fillText(etiquetaVal, x+barW/2, y-7);
 
-    // Etiqueta del eje X (fecha o categoría)
+    // Etiqueta del eje X (siempre la fecha, sin hora)
     ctx.save();
     ctx.translate(x+barW/2, padding.top+chartH+10);
     ctx.rotate(-Math.PI/3);
     ctx.textAlign = "right";
     ctx.fillStyle = "#8A969C";
     ctx.font = "10px IBM Plex Mono, monospace";
-    const corto = lab.length>18 ? lab.slice(0,18)+"…" : lab;
-    ctx.fillText(corto, 0, 0);
+    ctx.fillText(lab, 0, 0);
     ctx.restore();
   });
 }
@@ -443,30 +445,33 @@ function actualizarGraficaRociadores(rows){
   try{
     const variable = document.getElementById("r-variable").value;
     const ordenadas = rows.slice().sort((a,b)=> (a.__fecha||0) - (b.__fecha||0));
-    let labels, valores;
+
+    // El eje inferior siempre muestra solo el día (sin hora), sin importar la variable
+    const labels = ordenadas.map(r => fmtSoloDia(r.__fecha));
+    let valores, etiquetasTop, resumen;
 
     if(variable === "Frecuencia"){
-      const conteo = {};
-      ordenadas.forEach(r=>{ const v = r.Frecuencia || "Sin dato"; conteo[v] = (conteo[v]||0)+1; });
-      labels = Object.keys(conteo);
-      valores = Object.values(conteo);
+      // Barras de altura uniforme; arriba se muestra el texto de la frecuencia
+      valores = ordenadas.map(()=>1);
+      etiquetasTop = ordenadas.map(r => r.Frecuencia || "—");
+      const distintas = new Set(etiquetasTop).size;
+      resumen = `Registros: ${labels.length}  ·  Frecuencias distintas: ${distintas}`;
     }else{
-      labels = ordenadas.map(r => fmtFecha(r.__fecha));
       valores = ordenadas.map(r => parseFloat(r[variable]));
+      etiquetasTop = null;
+      const numeros = valores.filter(v=>!isNaN(v));
+      if(numeros.length){
+        const max = Math.max(...numeros).toFixed(1);
+        const min = Math.min(...numeros).toFixed(1);
+        const prom = (numeros.reduce((a,b)=>a+b,0)/numeros.length).toFixed(1);
+        resumen = `Máximo: ${max}  ·  Mínimo: ${min}  ·  Promedio: ${prom}  ·  Registros: ${labels.length}`;
+      }else{
+        resumen = `Registros: ${labels.length}`;
+      }
     }
 
-    const numeros = valores.filter(v=>!isNaN(v));
-    const resumen = document.getElementById("r-chart-resumen");
-    if(numeros.length){
-      const max = Math.max(...numeros).toFixed(1);
-      const min = Math.min(...numeros).toFixed(1);
-      const prom = (numeros.reduce((a,b)=>a+b,0)/numeros.length).toFixed(1);
-      resumen.textContent = `Máximo: ${max}  ·  Mínimo: ${min}  ·  Promedio: ${prom}  ·  Registros: ${labels.length}`;
-    }else{
-      resumen.textContent = `Registros: ${labels.length}`;
-    }
-
-    dibujarBarras("chart-rociadores", labels, valores);
+    document.getElementById("r-chart-resumen").textContent = resumen;
+    dibujarBarras("chart-rociadores", labels, valores, null, etiquetasTop);
   }catch(err){
     console.warn("No se pudo dibujar la gráfica de Rociadores:", err);
   }
