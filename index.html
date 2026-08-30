@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Panel de Cumplimiento — Zona Fría</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.4/chart.umd.min.js"></script>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap');
 
@@ -57,6 +58,13 @@
   .tab-panel.active{display:block;}
 
   .count-badge{font-size:11px;color:var(--text-dim);margin-bottom:10px;}
+
+  .chart-box{
+    background:var(--panel);border:1px solid var(--panel-line);border-radius:6px;
+    padding:16px 18px 10px;margin-bottom:18px;
+  }
+  .chart-head{margin-bottom:4px;}
+  .chart-title{font-family:'Space Grotesk',sans-serif;font-weight:600;font-size:13.5px;color:var(--text);}
 
   section.routine{margin-bottom:36px;}
   .routine-head{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:12px;flex-wrap:wrap;gap:8px;}
@@ -116,7 +124,7 @@
       <div class="hero-content">
         <p class="eyebrow">Nueva Fanal · Zona Fría</p>
         <h1>Panel de Gestión de Mantenimiento</h1>
-        <p class="sub">Lectura en vivo desde Google Sheets · se actualiza automáticamente cada 45 s</p>
+        <p class="sub">Lectura en tiempo real · se actualiza automáticamente cada 45 s</p>
       </div>
     </div>
   </header>
@@ -153,6 +161,28 @@
       <div class="stat"><div class="num" id="r-total">—</div><div class="lbl">Registros filtrados</div></div>
       <div class="stat"><div class="num" id="r-ultimo">—</div><div class="lbl">Último registro</div></div>
     </div>
+
+    <div class="chart-box">
+      <div class="chart-head">
+        <span class="chart-title">Comportamiento por variable</span>
+      </div>
+      <div class="filters">
+        <div class="filter-group"><label>Desde</label><input type="date" id="rg-desde"></div>
+        <div class="filter-group"><label>Hasta</label><input type="date" id="rg-hasta"></div>
+        <div class="filter-group"><label>Rociador</label><select id="rg-rociador"><option value="">Todos</option></select></div>
+        <div class="filter-group"><label>Variable</label>
+          <select id="r-variable">
+            <option value="Galonaje">Galonaje</option>
+            <option value="Temp">Temperatura</option>
+            <option value="Frecuencia">Frecuencia</option>
+          </select>
+        </div>
+        <button onclick="aplicarFiltrosGraficaRociadores()">Graficar</button>
+        <button class="secondary" onclick="limpiarFiltrosGraficaRociadores()">Limpiar</button>
+      </div>
+      <canvas id="chart-rociadores" height="90"></canvas>
+    </div>
+
     <p class="count-badge" id="r-count"></p>
     <div class="table-scroll"><table id="tabla-rociadores"><thead></thead><tbody></tbody></table></div>
   </section>
@@ -271,6 +301,67 @@ function renderTablaRociadores(rows){
     tbody.innerHTML += `<tr><td>${fmtFecha(r.__fecha)}</td><td>${r.Rociador||"—"}</td><td>${r.Galonaje||"—"}</td><td>${r.Tratamiento||"—"}</td><td>${r.Temp||"—"}</td><td>${r.Alineacion||"—"}</td><td>${r.Frecuencia||"—"}</td><td>${r.Esprea||"—"}</td><td>${r.Espreas||"—"}</td><td>${r.Envase||"—"}</td><td>${r.Carta||"—"}</td><td>${r.Fugas||"—"}</td><td>${r.Modo||"—"}</td><td>${r.Charolas||"—"}</td><td>${r.Personal||"—"}</td><td>${r.Comentarios||"—"}</td></tr>`;
   });
 }
+function actualizarGraficaRociadores(rows){
+  const variable = document.getElementById("r-variable").value;
+  const ordenadas = rows.slice().sort((a,b)=> (a.__fecha||0) - (b.__fecha||0));
+  let labels, valores, esCategorica = (variable === "Frecuencia");
+
+  if(esCategorica){
+    const conteo = {};
+    ordenadas.forEach(r=>{ const v = r.Frecuencia || "Sin dato"; conteo[v] = (conteo[v]||0)+1; });
+    labels = Object.keys(conteo);
+    valores = Object.values(conteo);
+  }else{
+    labels = ordenadas.map(r => fmtFecha(r.__fecha));
+    valores = ordenadas.map(r => parseFloat(r[variable]));
+  }
+
+  const ctx = document.getElementById("chart-rociadores").getContext("2d");
+  if(chartRociadores) chartRociadores.destroy();
+  chartRociadores = new Chart(ctx, {
+    type: "bar",
+    data: {
+      labels: labels,
+      datasets: [{
+        label: esCategorica ? "Conteo de registros" : variable,
+        data: valores,
+        backgroundColor: "#F2A93B",
+        borderRadius: 3,
+        maxBarThickness: 34
+      }]
+    },
+    options: {
+      responsive: true,
+      plugins: { legend: { display: false } },
+      scales: {
+        x: { ticks: { color: "#8A969C", font: { family: "IBM Plex Mono", size: 10 }, maxRotation: 60, minRotation: 0 }, grid: { color: "#2A3238" } },
+        y: { ticks: { color: "#8A969C", font: { family: "IBM Plex Mono", size: 10 } }, grid: { color: "#2A3238" }, beginAtZero: true }
+      }
+    }
+  });
+}
+let chartRociadores = null;
+
+function aplicarFiltrosGraficaRociadores(){
+  const desde = document.getElementById("rg-desde").value ? new Date(document.getElementById("rg-desde").value) : null;
+  const hasta = document.getElementById("rg-hasta").value ? new Date(document.getElementById("rg-hasta").value+"T23:59:59") : null;
+  const rociador = document.getElementById("rg-rociador").value;
+
+  let filtradas = dataRociadores.filter(r=>{
+    if(desde && (!r.__fecha || r.__fecha < desde)) return false;
+    if(hasta && (!r.__fecha || r.__fecha > hasta)) return false;
+    if(rociador && r.Rociador !== rociador) return false;
+    return true;
+  });
+
+  actualizarGraficaRociadores(filtradas);
+}
+function limpiarFiltrosGraficaRociadores(){
+  ["rg-desde","rg-hasta"].forEach(id=>document.getElementById(id).value="");
+  document.getElementById("rg-rociador").value="";
+  aplicarFiltrosGraficaRociadores();
+}
+
 function aplicarFiltrosRociadores(){
   const desde = document.getElementById("r-desde").value ? new Date(document.getElementById("r-desde").value) : null;
   const hasta = document.getElementById("r-hasta").value ? new Date(document.getElementById("r-hasta").value+"T23:59:59") : null;
@@ -375,7 +466,9 @@ async function cargarTodo(){
     document.getElementById("dot-rociadores").className = "dot ok";
     document.getElementById("status-rociadores").textContent = "Conectado";
     llenarSelect(document.getElementById("r-rociador"), dataRociadores.map(r=>r.Rociador));
+    llenarSelect(document.getElementById("rg-rociador"), dataRociadores.map(r=>r.Rociador));
     aplicarFiltrosRociadores();
+    aplicarFiltrosGraficaRociadores();
   }catch(err){
     document.getElementById("dot-rociadores").className = "dot err";
     document.getElementById("status-rociadores").textContent = "Error de lectura";
