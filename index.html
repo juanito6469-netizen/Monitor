@@ -327,7 +327,7 @@ function dibujarBarras(canvasId, labels, valores){
   const canvas = document.getElementById(canvasId);
   const dpr = window.devicePixelRatio || 1;
   const cssWidth = canvas.parentElement.clientWidth - 36;
-  const cssHeight = 260;
+  const cssHeight = 340;
   canvas.style.width = cssWidth + "px";
   canvas.style.height = cssHeight + "px";
   canvas.width = cssWidth * dpr;
@@ -336,7 +336,7 @@ function dibujarBarras(canvasId, labels, valores){
   ctx.setTransform(dpr,0,0,dpr,0,0);
   ctx.clearRect(0,0,cssWidth,cssHeight);
 
-  const padding = {top:22, right:10, bottom:56, left:42};
+  const padding = {top:30, right:10, bottom:70, left:48};
   const chartW = Math.max(cssWidth - padding.left - padding.right, 10);
   const chartH = cssHeight - padding.top - padding.bottom;
 
@@ -362,7 +362,7 @@ function dibujarBarras(canvasId, labels, valores){
 
   const n = labels.length;
   const slot = chartW/n;
-  const barW = Math.max(4, Math.min(30, slot*0.6));
+  const barW = Math.max(6, Math.min(40, slot*0.65));
 
   labels.forEach((lab,i)=>{
     const v = numeros[i];
@@ -374,19 +374,19 @@ function dibujarBarras(canvasId, labels, valores){
 
     // Valor exacto encima de la barra
     ctx.fillStyle = "#E7ECEE";
-    ctx.font = "9px IBM Plex Mono, monospace";
+    ctx.font = "10.5px IBM Plex Mono, monospace";
     ctx.textAlign = "center";
     const etiquetaVal = Number.isInteger(v) ? String(v) : v.toFixed(1);
-    ctx.fillText(etiquetaVal, x+barW/2, y-5);
+    ctx.fillText(etiquetaVal, x+barW/2, y-7);
 
     // Etiqueta del eje X (fecha o categoría)
     ctx.save();
-    ctx.translate(x+barW/2, padding.top+chartH+8);
+    ctx.translate(x+barW/2, padding.top+chartH+10);
     ctx.rotate(-Math.PI/3);
     ctx.textAlign = "right";
     ctx.fillStyle = "#8A969C";
-    ctx.font = "9px IBM Plex Mono, monospace";
-    const corto = lab.length>14 ? lab.slice(0,14)+"…" : lab;
+    ctx.font = "10px IBM Plex Mono, monospace";
+    const corto = lab.length>18 ? lab.slice(0,18)+"…" : lab;
     ctx.fillText(corto, 0, 0);
     ctx.restore();
   });
