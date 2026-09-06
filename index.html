@@ -159,6 +159,9 @@
     <button class="tab-btn" data-tab="duracote" onclick="cambiarTab('duracote')">
       <span class="dot wait" id="dot-duracote"></span>Duracote
     </button>
+    <button class="tab-btn" data-tab="bitacora" onclick="cambiarTab('bitacora')">
+      <span class="dot wait" id="dot-bitacora"></span>Bitácora
+    </button>
     <button class="tab-btn" data-tab="enlaces" onclick="cambiarTab('enlaces')">
       Enlaces
     </button>
@@ -256,6 +259,29 @@
   </section>
   </div>
 
+  <!-- BITÁCORA -->
+  <div class="tab-panel" id="tab-bitacora">
+  <section class="routine" id="sec-bitacora">
+    <div class="routine-head">
+      <span class="routine-name">Bitácora de Entrega de Turno</span>
+      <span class="status-label" id="status-bitacora">Cargando…</span>
+    </div>
+    <div class="filters">
+      <div class="filter-group"><label>Desde</label><input type="date" id="b-desde"></div>
+      <div class="filter-group"><label>Hasta</label><input type="date" id="b-hasta"></div>
+      <div class="filter-group"><label>Turno</label><select id="b-turno"><option value="">Todos</option></select></div>
+      <button onclick="aplicarFiltrosBitacora()">Filtrar</button>
+      <button class="secondary" onclick="limpiarFiltrosBitacora()">Limpiar</button>
+    </div>
+    <div class="grid">
+      <div class="stat"><div class="num" id="b-total">—</div><div class="lbl">Registros filtrados</div></div>
+      <div class="stat"><div class="num" id="b-ultimo">—</div><div class="lbl">Último registro</div></div>
+    </div>
+    <p class="count-badge" id="b-count"></p>
+    <div class="table-scroll"><table id="tabla-bitacora"><thead></thead><tbody></tbody></table></div>
+  </section>
+  </div>
+
   <!-- ENLACES -->
   <div class="tab-panel" id="tab-enlaces">
   <section class="routine">
@@ -278,6 +304,11 @@
         <span class="link-text">Rutina para cuarto de preparación de Duracote</span>
         <span class="link-arrow">↗</span>
       </a>
+      <a class="link-item" href="https://juanito6469-netizen.github.io/BITACORA-DE-MANTENIMIENTO/" target="_blank" rel="noopener">
+        <span class="link-num">4</span>
+        <span class="link-text">Bitácora de Entrega de Turno</span>
+        <span class="link-arrow">↗</span>
+      </a>
     </div>
   </section>
   </div>
@@ -297,10 +328,12 @@ function cambiarTab(nombre){
 const URL_ROCIADORES = "https://docs.google.com/spreadsheets/d/e/2PACX-1vSdPSfO2qq2IG-5_iMZMFiF89bJTyt_4NCCAJWkoLU-oV9xswcldKFTziGiYAC6PHhUho6SqeQKaw0a/pub?gid=0&single=true&output=csv";
 const URL_ESTEARATO  = "https://docs.google.com/spreadsheets/d/e/2PACX-1vTBMEo-n2MSdQsOSkWkCuCn2Cno4aOJfhavK3yQZK7UdseuxaOie0ry7X-ST-xymxZj4g6kz5O9zlb4/pub?gid=0&single=true&output=csv";
 const URL_DURACOTE    = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQ7MUMeJt0GjSrSITj0QlkuEF_fTPdhWSxzWbX7z1i3rPb-pFbxHZKKHrEQ__j4lxVHunb3yX11T9Y1/pub?gid=0&single=true&output=csv";
+const URL_BITACORA    = "https://docs.google.com/spreadsheets/d/e/2PACX-1vRejZL4vENMwdfV0lPvjswc2Xsx9rmDegNcvq9JXBk53M_mPWnySryN4s8OPj2Y6uKOCFzfQO5ebDDX/pub?gid=0&single=true&output=csv";
 
 let dataRociadores = [];
 let dataEstearato = [];
 let dataDuracote = [];
+let dataBitacora = [];
 
 // --- Utilidades ---
 function crearParserFecha(ordenPreferido){
@@ -337,6 +370,7 @@ function crearParserFecha(ordenPreferido){
 const parseFechaRociadores = crearParserFecha("MD");
 const parseFechaEstearato  = crearParserFecha("DM");
 const parseFechaDuracote   = crearParserFecha("DM");
+const parseFechaBitacora   = crearParserFecha("DM");
 
 function fmtFecha(d){
   if(!d) return "—";
@@ -641,6 +675,50 @@ function limpiarFiltrosDuracote(){
   aplicarFiltrosDuracote();
 }
 
+// --- BITÁCORA ---
+function renderTablaBitacora(rows){
+  const thead = document.querySelector("#tabla-bitacora thead");
+  const tbody = document.querySelector("#tabla-bitacora tbody");
+  thead.innerHTML = "<tr><th>Fecha</th><th>Entrega</th><th>Turno</th><th>Recibe</th><th>Actividades</th><th>Pendientes</th><th>Refacción</th></tr>";
+  tbody.innerHTML = "";
+  if(rows.length===0){ tbody.innerHTML = '<tr><td colspan="7" class="empty">Sin registros para este filtro</td></tr>'; return; }
+  rows.slice().reverse().forEach(r=>{
+    tbody.innerHTML += `<tr><td>${fmtFecha(r.__fecha)}</td><td>${r.Entrega||"—"}</td><td>${r.Turno||"—"}</td><td>${r.Recibe||"—"}</td><td>${r.Actividades||"—"}</td><td>${r.Pendientes||"—"}</td><td>${r.Refaccion||"—"}</td></tr>`;
+  });
+}
+function aplicarFiltrosBitacora(){
+  const desde = document.getElementById("b-desde").value ? new Date(document.getElementById("b-desde").value+"T00:00:00") : null;
+  const hasta = document.getElementById("b-hasta").value ? new Date(document.getElementById("b-hasta").value+"T23:59:59") : null;
+  const turno = document.getElementById("b-turno").value;
+
+  if(!desde && !hasta && !turno){
+    document.getElementById("b-total").textContent = "—";
+    document.getElementById("b-ultimo").textContent = "—";
+    document.getElementById("b-count").textContent = `Hay ${dataBitacora.length} registros totales. Elige un rango de fechas o un turno y presiona Filtrar para consultarlos.`;
+    mostrarPlaceholderTabla("tabla-bitacora", "Selecciona un filtro (fecha o turno) para mostrar registros");
+    return;
+  }
+
+  let filtradas = dataBitacora.filter(r=>{
+    if(desde && (!r.__fecha || r.__fecha < desde)) return false;
+    if(hasta && (!r.__fecha || r.__fecha > hasta)) return false;
+    if(turno && r.Turno !== turno) return false;
+    return true;
+  });
+
+  document.getElementById("b-total").textContent = filtradas.length;
+  document.getElementById("b-count").textContent = `Mostrando ${filtradas.length} de ${dataBitacora.length} registros totales`;
+  const ultima = filtradas.reduce((a,b)=> (!a || (b.__fecha && b.__fecha>a.__fecha)) ? b : a, null);
+  document.getElementById("b-ultimo").textContent = ultima ? fmtFecha(ultima.__fecha) : "—";
+
+  renderTablaBitacora(filtradas);
+}
+function limpiarFiltrosBitacora(){
+  ["b-desde","b-hasta"].forEach(id=>document.getElementById(id).value="");
+  document.getElementById("b-turno").value="";
+  aplicarFiltrosBitacora();
+}
+
 // --- Carga inicial y refresco automático ---
 async function cargarTodo(){
   try{
@@ -678,6 +756,22 @@ async function cargarTodo(){
   }catch(err){
     document.getElementById("dot-duracote").className = "dot err";
     document.getElementById("status-duracote").textContent = "Error de lectura";
+  }
+
+  if(!URL_BITACORA){
+    document.getElementById("dot-bitacora").className = "dot err";
+    document.getElementById("status-bitacora").textContent = "Falta conectar";
+  }else{
+    try{
+      dataBitacora = await cargarCSV(URL_BITACORA, parseFechaBitacora);
+      document.getElementById("dot-bitacora").className = "dot ok";
+      document.getElementById("status-bitacora").textContent = "Conectado";
+      llenarSelect(document.getElementById("b-turno"), dataBitacora.map(r=>r.Turno));
+      aplicarFiltrosBitacora();
+    }catch(err){
+      document.getElementById("dot-bitacora").className = "dot err";
+      document.getElementById("status-bitacora").textContent = "Error de lectura";
+    }
   }
 
   document.getElementById("footer-status").textContent = "Última actualización: " + new Date().toLocaleTimeString("es-MX");
