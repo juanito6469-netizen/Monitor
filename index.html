@@ -66,6 +66,25 @@
   #chart-rociadores{width:100%;display:block;}
   .chart-resumen{font-size:11px;color:var(--text-dim);margin:8px 0 0;text-align:center;}
 
+  .subtabs{display:flex;gap:2px;border-bottom:1px solid var(--panel-line);margin-bottom:18px;flex-wrap:wrap;}
+  .subtab-btn{
+    background:transparent;border:none;color:var(--text-dim);
+    font-family:'Space Grotesk',sans-serif;font-weight:600;font-size:12px;
+    padding:9px 13px;cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px;
+  }
+  .subtab-btn.active{color:var(--text);border-bottom-color:var(--amber);}
+  .subtab-btn:hover:not(.active){color:var(--text);}
+  .subtab-panel{display:none;}
+  .subtab-panel.active{display:block;}
+
+  .grid-kpi{display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:var(--panel-line);border:1px solid var(--panel-line);border-radius:6px;overflow:hidden;margin-bottom:18px;}
+  .kpi-card{background:var(--panel);padding:16px 16px 14px;}
+  .kpi-lbl{font-size:10px;color:var(--text-dim);text-transform:uppercase;letter-spacing:.07em;margin-bottom:8px;}
+  .kpi-val{font-family:'Space Grotesk',sans-serif;font-size:22px;font-weight:700;color:var(--amber);}
+  .kpi-val-sm{font-size:15px;padding-top:3px;}
+  .kpi-sub{font-size:11px;color:var(--text-dim);margin-top:5px;}
+  @media(max-width:560px){ .grid-kpi{grid-template-columns:1fr 1fr;} }
+
   .link-list{display:flex;flex-direction:column;gap:10px;}
   .link-item{
     display:flex;align-items:center;gap:14px;
@@ -161,6 +180,9 @@
     </button>
     <button class="tab-btn" data-tab="bitacora" onclick="cambiarTab('bitacora')">
       <span class="dot wait" id="dot-bitacora"></span>Bitácora
+    </button>
+    <button class="tab-btn" data-tab="cipo" onclick="cambiarTab('cipo')">
+      <span class="dot wait" id="dot-cipo"></span>Tiempos Muertos
     </button>
     <button class="tab-btn" data-tab="enlaces" onclick="cambiarTab('enlaces')">
       Enlaces
@@ -282,6 +304,88 @@
   </section>
   </div>
 
+  <!-- TIEMPOS MUERTOS (CIPO) -->
+  <div class="tab-panel" id="tab-cipo">
+  <section class="routine" id="sec-cipo">
+    <div class="routine-head">
+      <span class="routine-name">Análisis de Tiempos Muertos — Formato CIPO</span>
+      <span class="status-label" id="status-cipo">Cargando…</span>
+    </div>
+
+    <div class="filters">
+      <div class="filter-group"><label>Desde</label><input type="date" id="cp-desde"></div>
+      <div class="filter-group"><label>Hasta</label><input type="date" id="cp-hasta"></div>
+      <div class="filter-group"><label>Línea</label><select id="cp-linea"><option value="">Todas</option></select></div>
+      <div class="filter-group"><label>Turno</label><select id="cp-turno"><option value="">Todos</option></select></div>
+      <button onclick="aplicarFiltrosCipo()">Analizar</button>
+      <button class="secondary" onclick="limpiarFiltrosCipo()">Limpiar</button>
+    </div>
+
+    <div class="subtabs">
+      <button class="subtab-btn active" data-subtab="cp-resumen" onclick="cambiarSubtab('cp-resumen')">Resumen</button>
+      <button class="subtab-btn" data-subtab="cp-linea" onclick="cambiarSubtab('cp-linea')">Por Línea</button>
+      <button class="subtab-btn" data-subtab="cp-afectacion" onclick="cambiarSubtab('cp-afectacion')">Por Afectación</button>
+      <button class="subtab-btn" data-subtab="cp-personal" onclick="cambiarSubtab('cp-personal')">Personal</button>
+      <button class="subtab-btn" data-subtab="cp-detalle" onclick="cambiarSubtab('cp-detalle')">Detalle de eventos</button>
+    </div>
+
+    <!-- RESUMEN -->
+    <div class="subtab-panel active" id="subtab-cp-resumen">
+      <div class="grid-kpi">
+        <div class="kpi-card"><div class="kpi-lbl">Minutos de paro</div><div class="kpi-val" id="cp-k-total">—</div><div class="kpi-sub" id="cp-k-eventos">—</div></div>
+        <div class="kpi-card"><div class="kpi-lbl">Línea más afectada</div><div class="kpi-val" id="cp-k-linea">—</div><div class="kpi-sub" id="cp-k-linea-sub">—</div></div>
+        <div class="kpi-card"><div class="kpi-lbl">Turno más afectado</div><div class="kpi-val" id="cp-k-turno">—</div><div class="kpi-sub" id="cp-k-turno-sub">—</div></div>
+        <div class="kpi-card"><div class="kpi-lbl">Mayor carga (mecánico)</div><div class="kpi-val kpi-val-sm" id="cp-k-mec">—</div><div class="kpi-sub" id="cp-k-mec-sub">—</div></div>
+      </div>
+      <div class="chart-box">
+        <span class="chart-title">Minutos de paro por línea</span>
+        <canvas id="chart-cp-resumen-linea"></canvas>
+      </div>
+      <div class="chart-box">
+        <span class="chart-title">Minutos de paro por turno</span>
+        <canvas id="chart-cp-resumen-turno"></canvas>
+      </div>
+    </div>
+
+    <!-- POR LÍNEA -->
+    <div class="subtab-panel" id="subtab-cp-linea">
+      <div class="chart-box">
+        <span class="chart-title">Minutos de paro por línea</span>
+        <canvas id="chart-cp-linea"></canvas>
+        <p class="chart-resumen" id="cp-linea-resumen"></p>
+      </div>
+    </div>
+
+    <!-- POR AFECTACIÓN -->
+    <div class="subtab-panel" id="subtab-cp-afectacion">
+      <div class="chart-box">
+        <span class="chart-title">Minutos de paro por tipo de afectación</span>
+        <canvas id="chart-cp-afectacion"></canvas>
+        <p class="chart-resumen" id="cp-afectacion-resumen"></p>
+      </div>
+    </div>
+
+    <!-- PERSONAL -->
+    <div class="subtab-panel" id="subtab-cp-personal">
+      <div class="chart-box">
+        <span class="chart-title">Minutos atendidos por mecánico</span>
+        <canvas id="chart-cp-personal"></canvas>
+        <p class="chart-resumen" id="cp-personal-resumen"></p>
+      </div>
+    </div>
+
+    <!-- DETALLE -->
+    <div class="subtab-panel" id="subtab-cp-detalle">
+      <div class="grid">
+        <div class="stat"><div class="num" id="cp-total">—</div><div class="lbl">Eventos filtrados</div></div>
+        <div class="stat"><div class="num" id="cp-ultimo">—</div><div class="lbl">Último evento</div></div>
+      </div>
+      <p class="count-badge" id="cp-count"></p>
+      <div class="table-scroll"><table id="tabla-cipo"><thead></thead><tbody></tbody></table></div>
+    </div>
+  </section>
+  </div>
+
   <!-- ENLACES -->
   <div class="tab-panel" id="tab-enlaces">
   <section class="routine">
@@ -309,6 +413,11 @@
         <span class="link-text">Bitácora de Entrega de Turno</span>
         <span class="link-arrow">↗</span>
       </a>
+      <a class="link-item" href="https://juanito6469-netizen.github.io/TIEMPOS-MUERTOS-Y-CIPOS/" target="_blank" rel="noopener">
+        <span class="link-num">5</span>
+        <span class="link-text">Formato CIPO — Atención de Fallas</span>
+        <span class="link-arrow">↗</span>
+      </a>
     </div>
   </section>
   </div>
@@ -329,11 +438,13 @@ const URL_ROCIADORES = "https://docs.google.com/spreadsheets/d/e/2PACX-1vSdPSfO2
 const URL_ESTEARATO  = "https://docs.google.com/spreadsheets/d/e/2PACX-1vTBMEo-n2MSdQsOSkWkCuCn2Cno4aOJfhavK3yQZK7UdseuxaOie0ry7X-ST-xymxZj4g6kz5O9zlb4/pub?gid=0&single=true&output=csv";
 const URL_DURACOTE    = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQ7MUMeJt0GjSrSITj0QlkuEF_fTPdhWSxzWbX7z1i3rPb-pFbxHZKKHrEQ__j4lxVHunb3yX11T9Y1/pub?gid=0&single=true&output=csv";
 const URL_BITACORA    = "https://docs.google.com/spreadsheets/d/e/2PACX-1vRejZL4vENMwdfV0lPvjswc2Xsx9rmDegNcvq9JXBk53M_mPWnySryN4s8OPj2Y6uKOCFzfQO5ebDDX/pub?gid=0&single=true&output=csv";
+const URL_CIPO         = "https://docs.google.com/spreadsheets/d/e/2PACX-1vTgJGZcYTCgPakWmtgg9xulVru5uJBIQLLiRSUp7t9uCi3Vb_xv6fuVcuLDYRwQQiouykqTWJxHrY_0/pub?gid=0&single=true&output=csv";
 
 let dataRociadores = [];
 let dataEstearato = [];
 let dataDuracote = [];
 let dataBitacora = [];
+let dataCipo = [];
 
 // --- Utilidades ---
 function crearParserFecha(ordenPreferido){
@@ -371,6 +482,7 @@ const parseFechaRociadores = crearParserFecha("MD");
 const parseFechaEstearato  = crearParserFecha("DM");
 const parseFechaDuracote   = crearParserFecha("DM");
 const parseFechaBitacora   = crearParserFecha("DM");
+const parseFechaCipo       = crearParserFecha("DM");
 
 function fmtFecha(d){
   if(!d) return "—";
@@ -719,6 +831,124 @@ function limpiarFiltrosBitacora(){
   aplicarFiltrosBitacora();
 }
 
+// --- TIEMPOS MUERTOS (CIPO) ---
+function cambiarSubtab(nombre){
+  document.querySelectorAll(".subtab-panel").forEach(p=>p.classList.remove("active"));
+  document.querySelectorAll(".subtab-btn").forEach(b=>b.classList.remove("active"));
+  document.getElementById("subtab-"+nombre).classList.add("active");
+  document.querySelector(`.subtab-btn[data-subtab="${nombre}"]`).classList.add("active");
+}
+
+function agregarPorCampo(rows, campo){
+  const acc = {};
+  rows.forEach(r=>{
+    const key = r[campo] || "Sin dato";
+    const min = parseFloat(r.Minutos);
+    acc[key] = (acc[key]||0) + (isNaN(min)?0:min);
+  });
+  const labels = Object.keys(acc);
+  const valores = labels.map(l=>acc[l]);
+  return {labels, valores};
+}
+
+function renderTablaCipo(rows){
+  const thead = document.querySelector("#tabla-cipo thead");
+  const tbody = document.querySelector("#tabla-cipo tbody");
+  thead.innerHTML = "<tr><th>Fecha</th><th>Mecánico</th><th>Turno</th><th>Tipo Falla</th><th>Equipo</th><th>Línea</th><th>Herramienta</th><th>Refacciones</th><th>Actividades</th><th>Hora</th><th>Minutos</th><th>Área Libre</th><th>Supervisor</th><th>Afectación</th><th>Comentarios</th></tr>";
+  tbody.innerHTML = "";
+  if(rows.length===0){ tbody.innerHTML = '<tr><td colspan="15" class="empty">Sin registros para este filtro</td></tr>'; return; }
+  rows.slice().reverse().forEach(r=>{
+    tbody.innerHTML += `<tr><td>${fmtFecha(r.__fecha)}</td><td>${r.Mecanico||"—"}</td><td>${r.Turno||"—"}</td><td>${r.Tipo_Falla||"—"}</td><td>${r.Equipo||"—"}</td><td>${r.Linea||"—"}</td><td>${r.Herramienta||"—"}</td><td>${r.Refacciones||"—"}</td><td>${r.Actividades||"—"}</td><td>${r.Hora||"—"}</td><td>${r.Minutos||"—"}</td><td>${r.Area_Libre||"—"}</td><td>${r.Supervisor||"—"}</td><td>${r.Afectacion||"—"}</td><td>${r.Comentarios||"—"}</td></tr>`;
+  });
+}
+
+function actualizarAnalisisCipo(rows){
+  try{
+    const totalMin = rows.reduce((a,r)=>a+(parseFloat(r.Minutos)||0),0);
+    document.getElementById("cp-k-total").textContent = totalMin.toLocaleString("es-MX");
+    document.getElementById("cp-k-eventos").textContent = `${rows.length} eventos`;
+
+    const porLinea = agregarPorCampo(rows, "Linea");
+    const iL = porLinea.valores.indexOf(Math.max(...porLinea.valores, 0));
+    document.getElementById("cp-k-linea").textContent = porLinea.labels.length ? porLinea.labels[iL] : "—";
+    document.getElementById("cp-k-linea-sub").textContent = porLinea.labels.length ? `${porLinea.valores[iL].toLocaleString("es-MX")} min` : "";
+
+    const porTurno = agregarPorCampo(rows, "Turno");
+    const iT = porTurno.valores.indexOf(Math.max(...porTurno.valores, 0));
+    document.getElementById("cp-k-turno").textContent = porTurno.labels.length ? porTurno.labels[iT] : "—";
+    document.getElementById("cp-k-turno-sub").textContent = porTurno.labels.length ? `${porTurno.valores[iT].toLocaleString("es-MX")} min` : "";
+
+    const porMec = agregarPorCampo(rows, "Mecanico");
+    const iM = porMec.valores.indexOf(Math.max(...porMec.valores, 0));
+    document.getElementById("cp-k-mec").textContent = porMec.labels.length ? porMec.labels[iM] : "—";
+    document.getElementById("cp-k-mec-sub").textContent = porMec.labels.length ? `${porMec.valores[iM].toLocaleString("es-MX")} min` : "";
+
+    dibujarBarras("chart-cp-resumen-linea", porLinea.labels, porLinea.valores, "Sin datos para este filtro");
+    dibujarBarras("chart-cp-resumen-turno", porTurno.labels, porTurno.valores, "Sin datos para este filtro");
+    dibujarBarras("chart-cp-linea", porLinea.labels, porLinea.valores, "Sin datos para este filtro");
+    document.getElementById("cp-linea-resumen").textContent = porLinea.labels.length ? `Total: ${totalMin.toLocaleString("es-MX")} min repartidos en ${porLinea.labels.length} línea(s)` : "";
+
+    const porAfect = agregarPorCampo(rows, "Afectacion");
+    dibujarBarras("chart-cp-afectacion", porAfect.labels, porAfect.valores, "Sin datos para este filtro");
+    document.getElementById("cp-afectacion-resumen").textContent = porAfect.labels.length ? `${porAfect.labels.length} tipo(s) de afectación distintos` : "";
+
+    dibujarBarras("chart-cp-personal", porMec.labels, porMec.valores, "Sin datos para este filtro");
+    document.getElementById("cp-personal-resumen").textContent = porMec.labels.length ? `${porMec.labels.length} mecánico(s) con eventos atendidos` : "";
+  }catch(err){
+    console.warn("No se pudo actualizar el análisis de Tiempos Muertos:", err);
+  }
+}
+
+function mostrarPlaceholderCipo(mensaje){
+  ["cp-k-total","cp-k-linea","cp-k-turno","cp-k-mec"].forEach(id=>document.getElementById(id).textContent="—");
+  ["cp-k-eventos","cp-k-linea-sub","cp-k-turno-sub","cp-k-mec-sub"].forEach(id=>document.getElementById(id).textContent="");
+  dibujarBarras("chart-cp-resumen-linea", [], [], mensaje);
+  dibujarBarras("chart-cp-resumen-turno", [], [], mensaje);
+  dibujarBarras("chart-cp-linea", [], [], mensaje);
+  dibujarBarras("chart-cp-afectacion", [], [], mensaje);
+  dibujarBarras("chart-cp-personal", [], [], mensaje);
+  ["cp-linea-resumen","cp-afectacion-resumen","cp-personal-resumen"].forEach(id=>document.getElementById(id).textContent="");
+  document.getElementById("cp-total").textContent = "—";
+  document.getElementById("cp-ultimo").textContent = "—";
+  document.getElementById("cp-count").textContent = mensaje;
+  mostrarPlaceholderTabla("tabla-cipo", "Selecciona un filtro y presiona Analizar para ver los eventos");
+}
+
+function aplicarFiltrosCipo(){
+  const desde = document.getElementById("cp-desde").value ? new Date(document.getElementById("cp-desde").value+"T00:00:00") : null;
+  const hasta = document.getElementById("cp-hasta").value ? new Date(document.getElementById("cp-hasta").value+"T23:59:59") : null;
+  const linea = document.getElementById("cp-linea").value;
+  const turno = document.getElementById("cp-turno").value;
+
+  if(!desde && !hasta && !linea && !turno){
+    mostrarPlaceholderCipo(`Hay ${dataCipo.length} eventos totales. Elige un filtro y presiona Analizar.`);
+    return;
+  }
+
+  let filtradas = dataCipo.filter(r=>{
+    if(desde && (!r.__fecha || r.__fecha < desde)) return false;
+    if(hasta && (!r.__fecha || r.__fecha > hasta)) return false;
+    if(linea && r.Linea !== linea) return false;
+    if(turno && r.Turno !== turno) return false;
+    return true;
+  });
+
+  actualizarAnalisisCipo(filtradas);
+
+  document.getElementById("cp-total").textContent = filtradas.length;
+  document.getElementById("cp-count").textContent = `Mostrando ${filtradas.length} de ${dataCipo.length} eventos totales`;
+  const ultima = filtradas.reduce((a,b)=> (!a || (b.__fecha && b.__fecha>a.__fecha)) ? b : a, null);
+  document.getElementById("cp-ultimo").textContent = ultima ? fmtFecha(ultima.__fecha) : "—";
+
+  renderTablaCipo(filtradas);
+}
+function limpiarFiltrosCipo(){
+  ["cp-desde","cp-hasta"].forEach(id=>document.getElementById(id).value="");
+  document.getElementById("cp-linea").value="";
+  document.getElementById("cp-turno").value="";
+  aplicarFiltrosCipo();
+}
+
 // --- Carga inicial y refresco automático ---
 async function cargarTodo(){
   try{
@@ -771,6 +1001,23 @@ async function cargarTodo(){
     }catch(err){
       document.getElementById("dot-bitacora").className = "dot err";
       document.getElementById("status-bitacora").textContent = "Error de lectura";
+    }
+  }
+
+  if(!URL_CIPO){
+    document.getElementById("dot-cipo").className = "dot err";
+    document.getElementById("status-cipo").textContent = "Falta conectar";
+  }else{
+    try{
+      dataCipo = await cargarCSV(URL_CIPO, parseFechaCipo);
+      document.getElementById("dot-cipo").className = "dot ok";
+      document.getElementById("status-cipo").textContent = "Conectado";
+      llenarSelect(document.getElementById("cp-linea"), dataCipo.map(r=>r.Linea));
+      llenarSelect(document.getElementById("cp-turno"), dataCipo.map(r=>r.Turno));
+      aplicarFiltrosCipo();
+    }catch(err){
+      document.getElementById("dot-cipo").className = "dot err";
+      document.getElementById("status-cipo").textContent = "Error de lectura";
     }
   }
 
