@@ -133,6 +133,7 @@
 
   .table-scroll{overflow-x:auto;overflow-y:auto;max-height:520px;border:1px solid var(--panel-line);border-radius:6px;}
   table{width:100%;border-collapse:collapse;font-size:12px;white-space:nowrap;}
+  td.wrap{white-space:pre-wrap;word-break:break-word;max-width:280px;min-width:160px;}
   thead th{position:sticky;top:0;text-align:left;font-weight:500;color:var(--text-dim);font-size:10px;text-transform:uppercase;letter-spacing:.05em;padding:8px 10px;border-bottom:1px solid var(--panel-line);background:var(--panel);}
   tbody td{padding:7px 10px;border-bottom:1px solid var(--panel-line);}
   tbody tr:last-child td{border-bottom:none;}
@@ -524,7 +525,7 @@ function renderTablaRociadores(rows){
   tbody.innerHTML = "";
   if(rows.length===0){ tbody.innerHTML = '<tr><td colspan="16" class="empty">Sin registros para este filtro</td></tr>'; return; }
   rows.slice().reverse().forEach(r=>{
-    tbody.innerHTML += `<tr><td>${fmtFecha(r.__fecha)}</td><td>${r.Rociador||"—"}</td><td>${r.Galonaje||"—"}</td><td>${r.Tratamiento||"—"}</td><td>${r.Temp||"—"}</td><td>${r.Alineacion||"—"}</td><td>${r.Frecuencia||"—"}</td><td>${r.Esprea||"—"}</td><td>${r.Espreas||"—"}</td><td>${r.Envase||"—"}</td><td>${r.Carta||"—"}</td><td>${r.Fugas||"—"}</td><td>${r.Modo||"—"}</td><td>${r.Charolas||"—"}</td><td>${r.Personal||"—"}</td><td>${r.Comentarios||"—"}</td></tr>`;
+    tbody.innerHTML += `<tr><td>${fmtFecha(r.__fecha)}</td><td>${r.Rociador||"—"}</td><td>${r.Galonaje||"—"}</td><td>${r.Tratamiento||"—"}</td><td>${r.Temp||"—"}</td><td>${r.Alineacion||"—"}</td><td>${r.Frecuencia||"—"}</td><td>${r.Esprea||"—"}</td><td>${r.Espreas||"—"}</td><td>${r.Envase||"—"}</td><td>${r.Carta||"—"}</td><td>${r.Fugas||"—"}</td><td>${r.Modo||"—"}</td><td>${r.Charolas||"—"}</td><td>${r.Personal||"—"}</td><td class="wrap">${r.Comentarios||"—"}</td></tr>`;
   });
 }
 function dibujarBarras(canvasId, labels, valores, mensajeVacio, etiquetasTop){
@@ -705,7 +706,7 @@ function renderTablaEstearato(rows){
   tbody.innerHTML = "";
   if(rows.length===0){ tbody.innerHTML = '<tr><td colspan="16" class="empty">Sin registros para este filtro</td></tr>'; return; }
   rows.slice().reverse().forEach(r=>{
-    tbody.innerHTML += `<tr><td>${fmtFecha(r.__fecha)}</td><td>${r.Mecanico||"—"}</td><td>${r.Nivel_Estearato||"—"}</td><td>${r.Nivel_Hipoclorito||"—"}</td><td>${r.Consumo_Hipoclorito||"—"}</td><td>${r.Consumo_Agua||"—"}</td><td>${r.Cambio_Filtros||"—"}</td><td>${r.Limpieza_Tanque||"—"}</td><td>${r.Fugas_Prep||"—"}</td><td>${r.Presion_Salida||"—"}</td><td>${r.Limpieza_Cuarto||"—"}</td><td>${r.Bomba_Inyeccion||"—"}</td><td>${r.Estearato_Preparado||"—"}</td><td>${r.Numero_Lote||"—"}</td><td>${r.Sensores||"—"}</td><td>${r.Observaciones||"—"}</td></tr>`;
+    tbody.innerHTML += `<tr><td>${fmtFecha(r.__fecha)}</td><td>${r.Mecanico||"—"}</td><td>${r.Nivel_Estearato||"—"}</td><td>${r.Nivel_Hipoclorito||"—"}</td><td>${r.Consumo_Hipoclorito||"—"}</td><td>${r.Consumo_Agua||"—"}</td><td>${r.Cambio_Filtros||"—"}</td><td>${r.Limpieza_Tanque||"—"}</td><td>${r.Fugas_Prep||"—"}</td><td>${r.Presion_Salida||"—"}</td><td>${r.Limpieza_Cuarto||"—"}</td><td>${r.Bomba_Inyeccion||"—"}</td><td>${r.Estearato_Preparado||"—"}</td><td>${r.Numero_Lote||"—"}</td><td>${r.Sensores||"—"}</td><td class="wrap">${r.Observaciones||"—"}</td></tr>`;
   });
 }
 function aplicarFiltrosEstearato(){
@@ -750,7 +751,7 @@ function renderTablaDuracote(rows){
   tbody.innerHTML = "";
   if(rows.length===0){ tbody.innerHTML = '<tr><td colspan="16" class="empty">Sin registros para este filtro</td></tr>'; return; }
   rows.slice().reverse().forEach(r=>{
-    tbody.innerHTML += `<tr><td>${fmtFecha(r.__fecha)}</td><td>${r.Mecanico||"—"}</td><td>${r.Presion_Hidro||"—"}</td><td>${r.Presion_Entrada||"—"}</td><td>${r.Presion_Salida||"—"}</td><td>${r.Nivel_Desmin||"—"}</td><td>${r.Cambio_Filtros||"—"}</td><td>${r.Limpieza_Tanques||"—"}</td><td>${r.Fugas_Prep||"—"}</td><td>${r.Nivel_Duracote||"—"}</td><td>${r.Limpieza_Cuarto||"—"}</td><td>${r.Func_Hidro||"—"}</td><td>${r.Lampara_UV||"—"}</td><td>${r.Numero_Lote||"—"}</td><td>${r.Desmineralizador||"—"}</td><td>${r.Observaciones||"—"}</td></tr>`;
+    tbody.innerHTML += `<tr><td>${fmtFecha(r.__fecha)}</td><td>${r.Mecanico||"—"}</td><td>${r.Presion_Hidro||"—"}</td><td>${r.Presion_Entrada||"—"}</td><td>${r.Presion_Salida||"—"}</td><td>${r.Nivel_Desmin||"—"}</td><td>${r.Cambio_Filtros||"—"}</td><td>${r.Limpieza_Tanques||"—"}</td><td>${r.Fugas_Prep||"—"}</td><td>${r.Nivel_Duracote||"—"}</td><td>${r.Limpieza_Cuarto||"—"}</td><td>${r.Func_Hidro||"—"}</td><td>${r.Lampara_UV||"—"}</td><td>${r.Numero_Lote||"—"}</td><td>${r.Desmineralizador||"—"}</td><td class="wrap">${r.Observaciones||"—"}</td></tr>`;
   });
 }
 function aplicarFiltrosDuracote(){
@@ -795,7 +796,7 @@ function renderTablaBitacora(rows){
   tbody.innerHTML = "";
   if(rows.length===0){ tbody.innerHTML = '<tr><td colspan="7" class="empty">Sin registros para este filtro</td></tr>'; return; }
   rows.slice().reverse().forEach(r=>{
-    tbody.innerHTML += `<tr><td>${fmtFecha(r.__fecha)}</td><td>${r.Entrega||"—"}</td><td>${r.Turno||"—"}</td><td>${r.Recibe||"—"}</td><td>${r.Actividades||"—"}</td><td>${r.Pendientes||"—"}</td><td>${r.Refaccion||"—"}</td></tr>`;
+    tbody.innerHTML += `<tr><td>${fmtFecha(r.__fecha)}</td><td>${r.Entrega||"—"}</td><td>${r.Turno||"—"}</td><td>${r.Recibe||"—"}</td><td class="wrap">${r.Actividades||"—"}</td><td class="wrap">${r.Pendientes||"—"}</td><td>${r.Refaccion||"—"}</td></tr>`;
   });
 }
 function aplicarFiltrosBitacora(){
@@ -858,7 +859,7 @@ function renderTablaCipo(rows){
   tbody.innerHTML = "";
   if(rows.length===0){ tbody.innerHTML = '<tr><td colspan="15" class="empty">Sin registros para este filtro</td></tr>'; return; }
   rows.slice().reverse().forEach(r=>{
-    tbody.innerHTML += `<tr><td>${fmtFecha(r.__fecha)}</td><td>${r.Mecanico||"—"}</td><td>${r.Turno||"—"}</td><td>${r.Tipo_Falla||"—"}</td><td>${r.Equipo||"—"}</td><td>${r.Linea||"—"}</td><td>${r.Herramienta||"—"}</td><td>${r.Refacciones||"—"}</td><td>${r.Actividades||"—"}</td><td>${r.Hora||"—"}</td><td>${r.Minutos||"—"}</td><td>${r.Area_Libre||"—"}</td><td>${r.Supervisor||"—"}</td><td>${r.Afectacion||"—"}</td><td>${r.Comentarios||"—"}</td></tr>`;
+    tbody.innerHTML += `<tr><td>${fmtFecha(r.__fecha)}</td><td>${r.Mecanico||"—"}</td><td>${r.Turno||"—"}</td><td>${r.Tipo_Falla||"—"}</td><td>${r.Equipo||"—"}</td><td>${r.Linea||"—"}</td><td>${r.Herramienta||"—"}</td><td class="wrap">${r.Refacciones||"—"}</td><td class="wrap">${r.Actividades||"—"}</td><td>${r.Hora||"—"}</td><td>${r.Minutos||"—"}</td><td>${r.Area_Libre||"—"}</td><td>${r.Supervisor||"—"}</td><td>${r.Afectacion||"—"}</td><td class="wrap">${r.Comentarios||"—"}</td></tr>`;
   });
 }
 
