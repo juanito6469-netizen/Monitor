@@ -63,6 +63,8 @@
     padding:16px 18px 12px;margin-bottom:18px;
   }
   .chart-title{font-family:'Space Grotesk',sans-serif;font-weight:600;font-size:13.5px;color:var(--text);display:block;margin-bottom:10px;}
+  .chart-subtitulo{font-size:11px;color:var(--amber);text-transform:uppercase;letter-spacing:.06em;margin:16px 0 6px;font-family:'IBM Plex Mono',monospace;}
+  .chart-subtitulo:first-of-type{margin-top:4px;}
   #chart-rociadores{width:100%;display:block;}
   .lista-graf{max-height:380px;overflow-y:auto;border:1px solid var(--panel-line);border-radius:6px;padding:4px 16px;}
   .lista-fila{display:flex;align-items:center;gap:12px;padding:8px 0;border-bottom:1px solid var(--panel-line);}
@@ -236,18 +238,16 @@
       <div class="filters">
         <div class="filter-group"><label>Desde</label><input type="date" id="rg-desde"></div>
         <div class="filter-group"><label>Hasta</label><input type="date" id="rg-hasta"></div>
-        <div class="filter-group"><label>Rociador</label><select id="rg-rociador"><option value="">Todos</option></select></div>
-        <div class="filter-group"><label>Variable</label>
-          <select id="r-variable">
-            <option value="Galonaje">Galonaje</option>
-            <option value="Temp">Temperatura</option>
-            <option value="Frecuencia">Frecuencia</option>
-          </select>
-        </div>
-        <button onclick="aplicarFiltrosGraficaRociadores()">Graficar</button>
+        <div class="filter-group"><label>Rociador</label><select id="rg-rociador"></select></div>
+        <button onclick="graficarRociadores()">Graficar</button>
         <button class="secondary" onclick="limpiarFiltrosGraficaRociadores()">Limpiar</button>
       </div>
-      <div id="chart-rociadores" class="lista-graf"></div>
+      <p class="chart-subtitulo">Galonaje</p>
+      <div id="chart-rociadores-galonaje" class="lista-graf"></div>
+      <p class="chart-subtitulo">Temperatura</p>
+      <div id="chart-rociadores-temp" class="lista-graf"></div>
+      <p class="chart-subtitulo">Frecuencia</p>
+      <div id="chart-rociadores-frecuencia" class="lista-graf"></div>
       <p class="chart-resumen" id="r-chart-resumen"></p>
     </div>
   </section>
@@ -344,6 +344,7 @@
     <div class="subtabs">
       <button class="subtab-btn active" data-subtab="cp-resumen" onclick="cambiarSubtab('cp-resumen')">Resumen</button>
       <button class="subtab-btn" data-subtab="cp-linea" onclick="cambiarSubtab('cp-linea')">Por Línea</button>
+      <button class="subtab-btn" data-subtab="cp-equipo" onclick="cambiarSubtab('cp-equipo')">Por Equipo</button>
       <button class="subtab-btn" data-subtab="cp-afectacion" onclick="cambiarSubtab('cp-afectacion')">Por Afectación</button>
       <button class="subtab-btn" data-subtab="cp-personal" onclick="cambiarSubtab('cp-personal')">Personal</button>
       <button class="subtab-btn" data-subtab="cp-detalle" onclick="cambiarSubtab('cp-detalle')">Detalle de eventos</button>
@@ -355,7 +356,7 @@
         <div class="kpi-card"><div class="kpi-lbl">Minutos de paro</div><div class="kpi-val" id="cp-k-total">—</div><div class="kpi-sub" id="cp-k-eventos">—</div></div>
         <div class="kpi-card"><div class="kpi-lbl">Línea más afectada</div><div class="kpi-val" id="cp-k-linea">—</div><div class="kpi-sub" id="cp-k-linea-sub">—</div></div>
         <div class="kpi-card"><div class="kpi-lbl">Turno más afectado</div><div class="kpi-val" id="cp-k-turno">—</div><div class="kpi-sub" id="cp-k-turno-sub">—</div></div>
-        <div class="kpi-card"><div class="kpi-lbl">Mayor carga (mecánico)</div><div class="kpi-val kpi-val-sm" id="cp-k-mec">—</div><div class="kpi-sub" id="cp-k-mec-sub">—</div></div>
+        <div class="kpi-card"><div class="kpi-lbl">Personal con mayor atenciones</div><div class="kpi-val kpi-val-sm" id="cp-k-mec">—</div><div class="kpi-sub" id="cp-k-mec-sub">—</div></div>
       </div>
       <div class="chart-box">
         <span class="chart-title">Minutos de paro por línea</span>
@@ -376,6 +377,15 @@
       </div>
     </div>
 
+    <!-- POR EQUIPO -->
+    <div class="subtab-panel" id="subtab-cp-equipo">
+      <div class="chart-box">
+        <span class="chart-title">Minutos de paro por equipo</span>
+        <div id="chart-cp-equipo" class="lista-graf"></div>
+        <p class="chart-resumen" id="cp-equipo-resumen"></p>
+      </div>
+    </div>
+
     <!-- POR AFECTACIÓN -->
     <div class="subtab-panel" id="subtab-cp-afectacion">
       <div class="chart-box">
@@ -388,7 +398,7 @@
     <!-- PERSONAL -->
     <div class="subtab-panel" id="subtab-cp-personal">
       <div class="chart-box">
-        <span class="chart-title">Minutos atendidos por mecánico</span>
+        <span class="chart-title">Tiempo notificado por afectaciones mayores</span>
         <div id="chart-cp-personal" class="lista-graf"></div>
         <p class="chart-resumen" id="cp-personal-resumen"></p>
       </div>
@@ -513,9 +523,10 @@ function fmtSoloDia(d){
   if(!d) return "—";
   return d.toLocaleDateString("es-MX",{day:"2-digit",month:"2-digit",year:"2-digit"});
 }
-function llenarSelect(sel, valores){
+function llenarSelect(sel, valores, incluirTodos){
+  if(incluirTodos === undefined) incluirTodos = true;
   const actual = sel.value;
-  sel.innerHTML = '<option value="">Todas</option>';
+  sel.innerHTML = incluirTodos ? '<option value="">Todas</option>' : '';
   [...new Set(valores.filter(v=>v))].sort().forEach(v=>{
     const o = document.createElement("option");
     o.value = v; o.textContent = v;
@@ -523,7 +534,7 @@ function llenarSelect(sel, valores){
   });
   // Refuerzo: si el valor guardado sigue existiendo entre las opciones nuevas, forzarlo explícitamente
   const existe = [...sel.options].some(o => o.value === actual);
-  sel.value = existe ? actual : "";
+  sel.value = existe ? actual : (sel.options.length ? sel.options[0].value : "");
 }
 
 async function cargarCSV(url, parserFecha){
@@ -580,50 +591,61 @@ function renderListaValores(containerId, labels, valores, opciones){
 
 function actualizarGraficaRociadores(rows){
   try{
-    const variable = document.getElementById("r-variable").value;
     const ordenadas = rows.slice().sort((a,b)=> (a.__fecha||0) - (b.__fecha||0));
-
-    // El eje inferior siempre muestra solo el día (sin hora), sin importar la variable
     const labels = ordenadas.map(r => fmtSoloDia(r.__fecha));
-    let valores, etiquetasTop, resumen;
 
-    if(variable === "Frecuencia"){
-      // Barras de altura uniforme; arriba se muestra el texto de la frecuencia
-      valores = ordenadas.map(()=>1);
-      etiquetasTop = ordenadas.map(r => r.Frecuencia || "—");
-      const distintas = new Set(etiquetasTop).size;
-      resumen = `Registros: ${labels.length}  ·  Frecuencias distintas: ${distintas}`;
-    }else{
-      valores = ordenadas.map(r => parseFloat(r[variable]));
-      etiquetasTop = null;
-      const numeros = valores.filter(v=>!isNaN(v));
-      if(numeros.length){
-        const max = Math.max(...numeros).toFixed(1);
-        const min = Math.min(...numeros).toFixed(1);
-        const prom = (numeros.reduce((a,b)=>a+b,0)/numeros.length).toFixed(1);
-        resumen = `Máximo: ${max}  ·  Mínimo: ${min}  ·  Promedio: ${prom}  ·  Registros: ${labels.length}`;
-      }else{
-        resumen = `Registros: ${labels.length}`;
-      }
+    // Galonaje
+    const valGalonaje = ordenadas.map(r => parseFloat(r.Galonaje));
+    renderListaValores("chart-rociadores-galonaje", labels, valGalonaje, {});
+
+    // Temperatura
+    const valTemp = ordenadas.map(r => parseFloat(r.Temp));
+    renderListaValores("chart-rociadores-temp", labels, valTemp, {});
+
+    // Frecuencia (categórica, sin barra)
+    const valFrec = ordenadas.map(()=>1);
+    const etiquetasFrec = ordenadas.map(r => r.Frecuencia || "—");
+    renderListaValores("chart-rociadores-frecuencia", labels, valFrec, { etiquetasTop: etiquetasFrec, sinBarra: true });
+
+    const numerosGal = valGalonaje.filter(v=>!isNaN(v));
+    const numerosTemp = valTemp.filter(v=>!isNaN(v));
+    const distintasFrec = new Set(etiquetasFrec).size;
+    let resumen = `Registros: ${labels.length}  ·  Frecuencias distintas: ${distintasFrec}`;
+    if(numerosGal.length){
+      resumen += `  ·  Galonaje prom: ${(numerosGal.reduce((a,b)=>a+b,0)/numerosGal.length).toFixed(1)}`;
     }
-
+    if(numerosTemp.length){
+      resumen += `  ·  Temp prom: ${(numerosTemp.reduce((a,b)=>a+b,0)/numerosTemp.length).toFixed(1)}`;
+    }
     document.getElementById("r-chart-resumen").textContent = resumen;
-    renderListaValores("chart-rociadores", labels, valores, { etiquetasTop, sinBarra: variable==="Frecuencia" });
   }catch(err){
     console.warn("No se pudo actualizar la gráfica de Rociadores:", err);
   }
 }
 
+function mostrarPlaceholderGraficaRociadores(mensaje){
+  document.getElementById("r-chart-resumen").textContent = mensaje;
+  renderListaValores("chart-rociadores-galonaje", [], [], { mensajeVacio: mensaje });
+  renderListaValores("chart-rociadores-temp", [], [], { mensajeVacio: mensaje });
+  renderListaValores("chart-rociadores-frecuencia", [], [], { mensajeVacio: mensaje });
+}
+
+let rociadoresGraficoActivo = false;
+
+function graficarRociadores(){
+  rociadoresGraficoActivo = true;
+  aplicarFiltrosGraficaRociadores();
+}
+
 function aplicarFiltrosGraficaRociadores(){
+  if(!rociadoresGraficoActivo){
+    mostrarPlaceholderGraficaRociadores(`Hay ${dataRociadores.length} registros totales. Elige un rango de fechas (opcional) y presiona Graficar.`);
+    return;
+  }
+
   const desde = document.getElementById("rg-desde").value ? new Date(document.getElementById("rg-desde").value+"T00:00:00") : null;
   const hasta = document.getElementById("rg-hasta").value ? new Date(document.getElementById("rg-hasta").value+"T23:59:59") : null;
   const rociador = document.getElementById("rg-rociador").value;
-
-  if(!desde && !hasta && !rociador){
-    document.getElementById("r-chart-resumen").textContent = `Hay ${dataRociadores.length} registros totales. Elige un rango de fechas o un rociador y presiona Graficar.`;
-    renderListaValores("chart-rociadores", [], [], { mensajeVacio: "Selecciona un filtro (fecha o rociador) y presiona Graficar" });
-    return;
-  }
 
   let filtradas = dataRociadores.filter(r=>{
     if(desde && (!r.__fecha || r.__fecha < desde)) return false;
@@ -636,7 +658,7 @@ function aplicarFiltrosGraficaRociadores(){
 }
 function limpiarFiltrosGraficaRociadores(){
   ["rg-desde","rg-hasta"].forEach(id=>document.getElementById(id).value="");
-  document.getElementById("rg-rociador").value="";
+  rociadoresGraficoActivo = false;
   aplicarFiltrosGraficaRociadores();
 }
 
@@ -684,7 +706,7 @@ function limpiarFiltrosRociadores(){
 function renderTablaEstearato(rows){
   const thead = document.querySelector("#tabla-estearato thead");
   const tbody = document.querySelector("#tabla-estearato tbody");
-  thead.innerHTML = "<tr><th>Fecha</th><th>Mecánico</th><th>Nivel Estearato</th><th>Nivel Hipoclorito</th><th>Consumo Hipoclorito</th><th>Consumo Agua</th><th>Cambio Filtros</th><th>Limpieza Tanque</th><th>Fugas Prep</th><th>Presión Salida</th><th>Limpieza Cuarto</th><th>Bomba Inyección</th><th>Estearato Preparado</th><th>Lote</th><th>Sensores</th><th>Observaciones</th></tr>";
+  thead.innerHTML = "<tr><th>Fecha</th><th>Personal Mantenimiento</th><th>Nivel Estearato</th><th>Nivel Hipoclorito</th><th>Consumo Hipoclorito</th><th>Consumo Agua</th><th>Cambio Filtros</th><th>Limpieza Tanque</th><th>Fugas Prep</th><th>Presión Salida</th><th>Limpieza Cuarto</th><th>Bomba Inyección</th><th>Estearato Preparado</th><th>Lote</th><th>Sensores</th><th>Observaciones</th></tr>";
   tbody.innerHTML = "";
   if(rows.length===0){ tbody.innerHTML = '<tr><td colspan="16" class="empty">Sin registros para este filtro</td></tr>'; return; }
   rows.slice().reverse().forEach(r=>{
@@ -729,7 +751,7 @@ function limpiarFiltrosEstearato(){
 function renderTablaDuracote(rows){
   const thead = document.querySelector("#tabla-duracote thead");
   const tbody = document.querySelector("#tabla-duracote tbody");
-  thead.innerHTML = "<tr><th>Fecha</th><th>Mecánico</th><th>Presión Hidro</th><th>Presión Entrada</th><th>Presión Salida</th><th>Nivel Desmin</th><th>Cambio Filtros</th><th>Limpieza Tanques</th><th>Fugas Prep</th><th>Nivel Duracote</th><th>Limpieza Cuarto</th><th>Func Hidro</th><th>Lámpara UV</th><th>Lote</th><th>Desmineralizador</th><th>Observaciones</th></tr>";
+  thead.innerHTML = "<tr><th>Fecha</th><th>Personal Mantenimiento</th><th>Presión Hidro</th><th>Presión Entrada</th><th>Presión Salida</th><th>Nivel Desmin</th><th>Cambio Filtros</th><th>Limpieza Tanques</th><th>Fugas Prep</th><th>Nivel Duracote</th><th>Limpieza Cuarto</th><th>Func Hidro</th><th>Lámpara UV</th><th>Lote</th><th>Desmineralizador</th><th>Observaciones</th></tr>";
   tbody.innerHTML = "";
   if(rows.length===0){ tbody.innerHTML = '<tr><td colspan="16" class="empty">Sin registros para este filtro</td></tr>'; return; }
   rows.slice().reverse().forEach(r=>{
@@ -837,7 +859,7 @@ function agregarPorCampo(rows, campo){
 function renderTablaCipo(rows){
   const thead = document.querySelector("#tabla-cipo thead");
   const tbody = document.querySelector("#tabla-cipo tbody");
-  thead.innerHTML = "<tr><th>Fecha</th><th>Mecánico</th><th>Turno</th><th>Tipo Falla</th><th>Equipo</th><th>Línea</th><th>Herramienta</th><th>Refacciones</th><th>Actividades</th><th>Hora</th><th>Minutos</th><th>Área Libre</th><th>Supervisor</th><th>Afectación</th><th>Comentarios</th></tr>";
+  thead.innerHTML = "<tr><th>Fecha</th><th>Personal Mantenimiento</th><th>Turno</th><th>Tipo Falla</th><th>Equipo</th><th>Línea</th><th>Herramienta</th><th>Refacciones</th><th>Actividades</th><th>Hora</th><th>Minutos</th><th>Área Libre</th><th>Supervisor</th><th>Afectación</th><th>Comentarios</th></tr>";
   tbody.innerHTML = "";
   if(rows.length===0){ tbody.innerHTML = '<tr><td colspan="15" class="empty">Sin registros para este filtro</td></tr>'; return; }
   rows.slice().reverse().forEach(r=>{
@@ -873,12 +895,16 @@ function actualizarAnalisisCipo(rows){
     renderListaValores("chart-cp-linea", porLinea.labels, porLinea.valores, {});
     document.getElementById("cp-linea-resumen").textContent = porLinea.labels.length ? `Total: ${totalMin.toLocaleString("es-MX")} min repartidos en ${porLinea.labels.length} línea(s)` : "";
 
+    const porEquipo = ordenarDesc(agregarPorCampo(rows, "Equipo"));
+    renderListaValores("chart-cp-equipo", porEquipo.labels, porEquipo.valores, {});
+    document.getElementById("cp-equipo-resumen").textContent = porEquipo.labels.length ? `${porEquipo.labels.length} equipo(s) distintos con afectación` : "";
+
     const porAfect = ordenarDesc(agregarPorCampo(rows, "Afectacion"));
     renderListaValores("chart-cp-afectacion", porAfect.labels, porAfect.valores, {});
     document.getElementById("cp-afectacion-resumen").textContent = porAfect.labels.length ? `${porAfect.labels.length} tipo(s) de afectación distintos` : "";
 
     renderListaValores("chart-cp-personal", porMec.labels, porMec.valores, {});
-    document.getElementById("cp-personal-resumen").textContent = porMec.labels.length ? `${porMec.labels.length} mecánico(s) con eventos atendidos` : "";
+    document.getElementById("cp-personal-resumen").textContent = porMec.labels.length ? `${porMec.labels.length} persona(s) de mantenimiento con eventos atendidos` : "";
   }catch(err){
     console.warn("No se pudo actualizar el análisis de Tiempos Muertos:", err);
   }
@@ -890,9 +916,10 @@ function mostrarPlaceholderCipo(mensaje){
   renderListaValores("chart-cp-resumen-linea", [], [], {mensajeVacio: mensaje});
   renderListaValores("chart-cp-resumen-turno", [], [], {mensajeVacio: mensaje});
   renderListaValores("chart-cp-linea", [], [], {mensajeVacio: mensaje});
+  renderListaValores("chart-cp-equipo", [], [], {mensajeVacio: mensaje});
   renderListaValores("chart-cp-afectacion", [], [], {mensajeVacio: mensaje});
   renderListaValores("chart-cp-personal", [], [], {mensajeVacio: mensaje});
-  ["cp-linea-resumen","cp-afectacion-resumen","cp-personal-resumen"].forEach(id=>document.getElementById(id).textContent="");
+  ["cp-linea-resumen","cp-equipo-resumen","cp-afectacion-resumen","cp-personal-resumen"].forEach(id=>document.getElementById(id).textContent="");
   document.getElementById("cp-total").textContent = "—";
   document.getElementById("cp-ultimo").textContent = "—";
   document.getElementById("cp-count").textContent = mensaje;
@@ -947,7 +974,7 @@ async function cargarTodo(){
     document.getElementById("status-rociadores").textContent = "Error de lectura";
   }
   try{
-    llenarSelect(document.getElementById("rg-rociador"), dataRociadores.map(r=>r.Rociador));
+    llenarSelect(document.getElementById("rg-rociador"), dataRociadores.map(r=>r.Rociador), false);
     aplicarFiltrosGraficaRociadores();
   }catch(err){
     console.warn("No se pudo actualizar la gráfica de Rociadores:", err);
