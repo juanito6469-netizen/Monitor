@@ -602,10 +602,14 @@ function actualizarGraficaRociadores(rows){
     const valTemp = ordenadas.map(r => parseFloat(r.Temp));
     renderListaValores("chart-rociadores-temp", labels, valTemp, {});
 
-    // Frecuencia (categórica, sin barra)
-    const valFrec = ordenadas.map(()=>1);
+    // Frecuencia: es texto con unidad (ej. "48hz"); se extrae el número para graficar la barra
+    // y se conserva el texto original como etiqueta del valor.
     const etiquetasFrec = ordenadas.map(r => r.Frecuencia || "—");
-    renderListaValores("chart-rociadores-frecuencia", labels, valFrec, { etiquetasTop: etiquetasFrec, sinBarra: true });
+    const valFrec = ordenadas.map(r => {
+      const num = parseFloat(String(r.Frecuencia||"").replace(/[^\d.]/g,""));
+      return isNaN(num) ? 0 : num;
+    });
+    renderListaValores("chart-rociadores-frecuencia", labels, valFrec, { etiquetasTop: etiquetasFrec });
 
     const numerosGal = valGalonaje.filter(v=>!isNaN(v));
     const numerosTemp = valTemp.filter(v=>!isNaN(v));
