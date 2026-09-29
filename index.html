@@ -209,7 +209,7 @@
       <span class="dot wait" id="dot-bitacora"></span>Bitácora
     </button>
     <button class="tab-btn" data-tab="cipo" onclick="cambiarTab('cipo')">
-      <span class="dot wait" id="dot-cipo"></span>Tiempos Muertos
+      <span class="dot wait" id="dot-cipo"></span>Inocuidad y Rastreabilidad
     </button>
     <button class="tab-btn" data-tab="enlaces" onclick="cambiarTab('enlaces')">
       Enlaces
@@ -341,6 +341,7 @@
       <div class="filter-group"><label>Desde</label><input type="date" id="cp-desde"></div>
       <div class="filter-group"><label>Hasta</label><input type="date" id="cp-hasta"></div>
       <div class="filter-group"><label>Línea</label><select id="cp-linea"><option value="">Todas</option></select></div>
+      <div class="filter-group"><label>Equipo</label><select id="cp-equipo-filtro"><option value="">Todos</option></select></div>
       <div class="filter-group"><label>Turno</label><select id="cp-turno"><option value="">Todos</option></select></div>
       <button onclick="aplicarFiltrosCipo()">Analizar</button>
       <button class="secondary" onclick="limpiarFiltrosCipo()">Limpiar</button>
@@ -1003,9 +1004,10 @@ function aplicarFiltrosCipo(){
   const desde = document.getElementById("cp-desde").value ? new Date(document.getElementById("cp-desde").value+"T00:00:00") : null;
   const hasta = document.getElementById("cp-hasta").value ? new Date(document.getElementById("cp-hasta").value+"T23:59:59") : null;
   const linea = document.getElementById("cp-linea").value;
+  const equipo = document.getElementById("cp-equipo-filtro").value;
   const turno = document.getElementById("cp-turno").value;
 
-  if(!desde && !hasta && !linea && !turno){
+  if(!desde && !hasta && !linea && !equipo && !turno){
     mostrarPlaceholderCipo(`Hay ${dataCipo.length} eventos totales. Elige un filtro y presiona Analizar.`);
     return;
   }
@@ -1014,6 +1016,7 @@ function aplicarFiltrosCipo(){
     if(desde && (!r.__fecha || r.__fecha < desde)) return false;
     if(hasta && (!r.__fecha || r.__fecha > hasta)) return false;
     if(linea && r.Linea !== linea) return false;
+    if(equipo && r.Equipo !== equipo) return false;
     if(turno && r.Turno !== turno) return false;
     return true;
   });
@@ -1030,6 +1033,7 @@ function aplicarFiltrosCipo(){
 function limpiarFiltrosCipo(){
   ["cp-desde","cp-hasta"].forEach(id=>document.getElementById(id).value="");
   document.getElementById("cp-linea").value="";
+  document.getElementById("cp-equipo-filtro").value="";
   document.getElementById("cp-turno").value="";
   aplicarFiltrosCipo();
 }
@@ -1098,6 +1102,7 @@ async function cargarTodo(){
       document.getElementById("dot-cipo").className = "dot ok";
       document.getElementById("status-cipo").textContent = "Conectado";
       llenarSelect(document.getElementById("cp-linea"), dataCipo.map(r=>r.Linea));
+      llenarSelect(document.getElementById("cp-equipo-filtro"), dataCipo.map(r=>r.Equipo));
       llenarSelect(document.getElementById("cp-turno"), dataCipo.map(r=>r.Turno));
       aplicarFiltrosCipo();
     }catch(err){
